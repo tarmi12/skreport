@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบรายงานขนส่งและรับซื้อ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js สำหรับ Pie Chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .dropdown-menu { display: none; }
+    .dropdown-menu.active { display: block; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <!-- ================= หน้าจอล็อกอิน (Login Modal / Screen) ================= -->
+  <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 sm:p-8">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl mb-3 text-2xl font-bold">
+          🔒
+        </div>
+        <h2 class="text-xl font-bold text-slate-900">เข้าสู่ระบบรายงาน</h2>
+        <p class="text-xs text-slate-500 mt-1">กรุณายืนยันตัวตนผ่านบัญชี Supabase เพื่อเข้าดูข้อมูล</p>
+      </div>
+
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมลผู้ใช้งาน (Email)</label>
+          <input type="email" id="login-email" required placeholder="name@company.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+          <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-indigo-500">
+        </div>
+
+        <div id="login-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg"></div>
+
+        <button type="submit" id="btn-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm shadow transition">
+          เข้าสู่ระบบ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= แอพหลัก (Main Dashboard) ================= -->
+  <div id="main-content" class="hidden max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">📊 ระบบรายงานขนส่งและรับซื้อ</h1>
+        <p class="text-sm text-slate-500">ระบบตัวกรอง, วิเคราะห์สัดส่วนสินค้า (Pie Chart) และออกรายงาน PDF</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex gap-2 bg-slate-200 p-1.5 rounded-xl">
+          <button id="btn-outbound" onclick="switchTab('outbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm">
+            🚚 ส่งออก (Outbound)
+          </button>
+          <button id="btn-inbound" onclick="switchTab('inbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900">
+            📥 รับเข้า (Inbound)
+          </button>
+        </div>
+        <!-- แสดงผู้ใช้ & ปุ่มออกจากระบบ -->
+        <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+          <span id="user-display" class="text-xs text-slate-500 font-medium"></span>
+          <button onclick="handleLogout()" class="px-3 py-1.5 text-xs bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg font-semibold transition">
+            ออกจากระบบ 🚪
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filters Panel -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+        <h3 class="text-sm font-bold text-slate-700">🔍 ตัวกรองข้อมูล</h3>
+        <button onclick="resetFilters()" class="text-xs text-rose-600 hover:underline font-semibold">ล้างตัวกรองทั้งหมด (Reset)</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">ตั้งแต่วันที่</label>
+          <input type="date" id="filter-date-start" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">ถึงวันที่</label>
+          <input type="date" id="filter-date-end" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+        </div>
+
+        <div id="box-carrier" class="relative">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">บริษัทขนส่ง (Carrier)</label>
+          <button type="button" onclick="toggleDropdown('drop-carrier')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+            <span id="btn-label-carrier" class="truncate">เลือกขนส่ง (ทั้งหมด)</span>
+            <span class="text-xs text-slate-400">▼</span>
+          </button>
+          <div id="drop-carrier" class="dropdown-menu absolute z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
+              <span class="font-bold text-slate-700">เลือกขนส่ง</span>
+              <div class="space-x-2">
+                <button type="button" onclick="selectAll('carrier', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
+                <button type="button" onclick="selectAll('carrier', false)" class="text-slate-400 hover:underline">ล้าง</button>
+              </div>
+            </div>
+            <div id="list-carrier" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <div class="relative">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">ชนิดสินค้า (Product)</label>
+          <button type="button" onclick="toggleDropdown('drop-product')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+            <span id="btn-label-product" class="truncate">เลือกสินค้า (ทั้งหมด)</span>
+            <span class="text-xs text-slate-400">▼</span>
+          </button>
+          <div id="drop-product" class="dropdown-menu absolute z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
+              <span class="font-bold text-slate-700">เลือกสินค้า</span>
+              <div class="space-x-2">
+                <button type="button" onclick="selectAll('product', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
+                <button type="button" onclick="selectAll('product', false)" class="text-slate-400 hover:underline">ล้าง</button>
+              </div>
+            </div>
+            <div id="list-product" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <div class="relative">
+          <label id="lbl-partner" class="block text-xs font-semibold text-slate-500 mb-1">ปลายทาง (Destination)</label>
+          <button type="button" onclick="toggleDropdown('drop-partner')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+            <span id="btn-label-partner" class="truncate">เลือกรายการ (ทั้งหมด)</span>
+            <span class="text-xs text-slate-400">▼</span>
+          </button>
+          <div id="drop-partner" class="dropdown-menu absolute z-20 mt-1 w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
+              <span id="drop-partner-title" class="font-bold text-slate-700">เลือกรายการ</span>
+              <div class="space-x-2">
+                <button type="button" onclick="selectAll('partner', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
+                <button type="button" onclick="selectAll('partner', false)" class="text-slate-400 hover:underline">ล้าง</button>
+              </div>
+            </div>
+            <div id="list-partner" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-100">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาทะเบียนรถ</label>
+          <input type="text" id="filter-plate" onkeyup="applyFilters()" placeholder="พิมพ์เลขทะเบียน..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาเลขบัตรชั่ง</label>
+          <input type="text" id="filter-ticket" onkeyup="applyFilters()" placeholder="พิมพ์เลขบัตรชั่ง..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+        </div>
+      </div>
+    </div>
+
+    <!-- ส่วน Dashboard: KPIs และ Pie Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 my-6 items-stretch">
+      <div class="flex flex-col gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col justify-center">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">จำนวนรายการ/เที่ยว (ที่กรอง)</span>
+          <div id="stat-count" class="text-3xl font-extrabold text-slate-900 mt-1">0</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col justify-center">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">น้ำหนักสุทธิรวม (กก.)</span>
+          <div id="stat-weight" class="text-3xl font-extrabold text-indigo-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col justify-center">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">มูลค่ารวม (บาท)</span>
+          <div id="stat-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">-</div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-6">
+        <div class="w-full sm:w-1/2 h-56 flex items-center justify-center relative">
+          <canvas id="productPieChart"></canvas>
+        </div>
+        <div class="w-full sm:w-1/2 flex flex-col justify-center">
+          <h4 class="text-sm font-bold text-slate-800 mb-2">📊 สัดส่วนตามชนิดกระดาษ/สินค้า</h4>
+          <p class="text-xs text-slate-500 mb-3">คำนวณตามช่วงวันที่และตัวกรองที่เลือก</p>
+          <div id="chart-legend-list" class="space-y-1.5 text-xs max-h-40 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table & Action Buttons -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <h2 id="table-title" class="font-bold text-slate-800 text-lg">รายการข้อมูล</h2>
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="printSummaryPDF(false)" class="px-3.5 py-2 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold flex items-center gap-1.5 transition">
+            📋 พิมพ์สรุปยอด (Summary Only)
+          </button>
+          
+          <button onclick="printSummaryPDF(true)" class="px-3.5 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition">
+            📑 พิมพ์สรุป + รายละเอียด (Summary & Detail)
+          </button>
+
+          <button onclick="exportCSV()" class="px-3 py-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-medium">
+            📥 ดาวน์โหลด CSV
+          </button>
+          <button onclick="fetchData()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700">
+            รีเฟรช 🔄
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto max-h-[600px]">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+          <thead id="table-head" class="bg-slate-50 text-slate-600 font-semibold sticky top-0 shadow-sm"></thead>
+          <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zxbsgiuvcudfmdpljxyo.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4YnNnaXV2Y3VkZm1kcGxqeHlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NDkzOTYsImV4cCI6MjA5NjMyNTM5Nn0.u6EKZJgGicvLEOWzh9GuGlnA6p6ZdkhRP0zZRBgORPM';
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentTab = 'outbound';
+    let rawDataset = [];
+    let filteredDataset = [];
+
+    let masterCarriers = [];
+    let masterProducts = [];
+    let masterPartners = [];
+
+    let selectedCarriers = new Set();
+    let selectedProducts = new Set();
+    let selectedPartners = new Set();
+
+    let pieChartInstance = null;
+
+    // ================= ระบบตรวจสอบและจัดการ Authentication =================
+    async function checkAuthSession() {
+      const { data: { session } } = await client.auth.getSession();
+      if (session) {
+        showApp(session.user);
+      } else {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('main-content').classList.add('hidden');
+    }
+
+    function showApp(user) {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+      document.getElementById('user-display').innerText = user.email || 'ผู้ใช้งาน';
+      setDefaultDateFilter();
+      fetchData();
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorBox = document.getElementById('login-error');
+      const submitBtn = document.getElementById('btn-login-submit');
+
+      errorBox.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'กำลังเข้าสู่ระบบ...';
+
+      const { data, error } = await client.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      if (error) {
+        errorBox.innerText = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง: ' + error.message;
+        errorBox.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'เข้าสู่ระบบ';
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'เข้าสู่ระบบ';
+        showApp(data.user);
+      }
+    }
+
+    async function handleLogout() {
+      if (confirm('ต้องการออกจากระบบใช่หรือไม่?')) {
+        await client.auth.signOut();
+        showLogin();
+      }
+    }
+
+    // ================= ฟังก์ชันจัดการ UI และตัวกรอง =================
+    function toggleDropdown(id) {
+      const el = document.getElementById(id);
+      const isOpen = el.classList.contains('active');
+      document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
+      if (!isOpen) el.classList.add('active');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
+      }
+    });
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('btn-outbound').className = tab === 'outbound' 
+        ? 'px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm'
+        : 'px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900';
+      document.getElementById('btn-inbound').className = tab === 'inbound'
+        ? 'px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm'
+        : 'px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900';
+      
+      document.getElementById('lbl-partner').innerText = tab === 'outbound' ? 'ปลายทาง (Destination)' : 'ผู้ขาย (Vendor)';
+      document.getElementById('drop-partner-title').innerText = tab === 'outbound' ? 'เลือกปลายทาง' : 'เลือกผู้ขาย';
+      document.getElementById('box-carrier').style.display = tab === 'outbound' ? 'block' : 'none';
+
+      resetFilters();
+      fetchData();
+    }
+
+    function parseDate(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        let year = parseInt(parts[2]);
+        if (year < 100) year += 2000;
+        return new Date(year, parseInt(parts[1]) - 1, parseInt(parts[0]));
+      }
+      return null;
+    }
+
+    // วันที่ 1 ถึง "วันสิ้นเดือนปัจจุบัน" อัตโนมัติ
+    function setDefaultDateFilter() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const lastDateObj = new Date(year, month + 1, 0);
+      const lastDay = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDateObj.getDate()).padStart(2, '0')}`;
+
+      document.getElementById('filter-date-start').value = firstDay;
+      document.getElementById('filter-date-end').value = lastDay;
+    }
+
+    async function fetchData() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">กำลังดึงข้อมูล...</td></tr>';
+
+      const tableName = currentTab === 'outbound' ? 'outbound_records' : 'inbound_records';
+      const { data, error } = await client.from(tableName).select('*').order('id', { ascending: false }).limit(100000);
+
+      if (error) { 
+        alert('เกิดข้อผิดพลาด: ' + error.message); 
+        return; 
+      }
+
+      rawDataset = data || [];
+      populateMultiSelects();
+      applyFilters();
+    }
+
+    function populateMultiSelects() {
+      const carriers = new Set();
+      const products = new Set();
+      const partners = new Set();
+
+      rawDataset.forEach(r => {
+        if (r.carrier) carriers.add(r.carrier.trim());
+        if (r.product) products.add(r.product.trim());
+        if (currentTab === 'outbound' && r.destination) partners.add(r.destination.trim());
+        if (currentTab === 'inbound' && r.vendor_name) partners.add(r.vendor_name.trim());
+      });
+
+      masterCarriers = Array.from(carriers);
+      masterProducts = Array.from(products);
+      masterPartners = Array.from(partners);
+
+      renderCheckboxes('list-carrier', masterCarriers, selectedCarriers, 'carrier');
+      renderCheckboxes('list-product', masterProducts, selectedProducts, 'product');
+      renderCheckboxes('list-partner', masterPartners, selectedPartners, 'partner');
+      updateButtonLabels();
+    }
+
+    function renderCheckboxes(containerId, items, selectedSet, type) {
+      const container = document.getElementById(containerId);
+      if (items.length === 0) {
+        container.innerHTML = '<div class="text-slate-400 text-xs py-1">ไม่มีตัวเลือก</div>';
+        return;
+      }
+      container.innerHTML = items.map(val => `
+        <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+          <input type="checkbox" value="${val}" ${selectedSet.has(val) ? 'checked' : ''} onchange="handleCheckboxChange('${type}', '${val.replace(/'/g, "\\'")}', this.checked)" class="rounded text-indigo-600 focus:ring-0">
+          <span class="truncate">${val}</span>
+        </label>
+      `).join('');
+    }
+
+    function handleCheckboxChange(type, value, isChecked) {
+      const targetSet = type === 'carrier' ? selectedCarriers : (type === 'product' ? selectedProducts : selectedPartners);
+      if (isChecked) { targetSet.add(value); } else { targetSet.delete(value); }
+      updateButtonLabels();
+      applyFilters();
+    }
+
+    function selectAll(type, isSelectAll) {
+      let masterList = [];
+      let targetSet;
+      let listId = '';
+
+      if (type === 'carrier') { masterList = masterCarriers; targetSet = selectedCarriers; listId = 'list-carrier'; }
+      else if (type === 'product') { masterList = masterProducts; targetSet = selectedProducts; listId = 'list-product'; }
+      else if (type === 'partner') { masterList = masterPartners; targetSet = selectedPartners; listId = 'list-partner'; }
+
+      targetSet.clear();
+      if (isSelectAll) {
+        masterList.forEach(item => targetSet.add(item));
+      }
+
+      renderCheckboxes(listId, masterList, targetSet, type);
+      updateButtonLabels();
+      applyFilters();
+    }
+
+    function updateButtonLabels() {
+      const cSize = selectedCarriers.size;
+      document.getElementById('btn-label-carrier').innerText = cSize === 0 ? 'เลือกขนส่ง (ทั้งหมด)' : (cSize === masterCarriers.length ? 'ขนส่ง (ทั้งหมด)' : `เลือกขนส่ง (${cSize})`);
+
+      const pSize = selectedProducts.size;
+      document.getElementById('btn-label-product').innerText = pSize === 0 ? 'เลือกสินค้า (ทั้งหมด)' : (pSize === masterProducts.length ? 'สินค้า (ทั้งหมด)' : `เลือกสินค้า (${pSize})`);
+
+      const ptSize = selectedPartners.size;
+      document.getElementById('btn-label-partner').innerText = ptSize === 0 ? 'เลือกรายการ (ทั้งหมด)' : (ptSize === masterPartners.length ? 'รายการ (ทั้งหมด)' : `เลือกรายการ (${ptSize})`);
+    }
+
+    function applyFilters() {
+      const startVal = document.getElementById('filter-date-start').value;
+      const endVal = document.getElementById('filter-date-end').value;
+      const plateSearch = document.getElementById('filter-plate').value.toLowerCase().trim();
+      const ticketSearch = document.getElementById('filter-ticket').value.toLowerCase().trim();
+
+      const startDate = startVal ? new Date(startVal) : null;
+      const endDate = endVal ? new Date(endVal) : null;
+      if (endDate) endDate.setHours(23, 59, 59, 999);
+
+      filteredDataset = rawDataset.filter(r => {
+        if (startDate || endDate) {
+          const rowDate = parseDate(r.tx_date);
+          if (rowDate) {
+            if (startDate && rowDate < startDate) return false;
+            if (endDate && rowDate > endDate) return false;
+          }
+        }
+
+        if (currentTab === 'outbound' && selectedCarriers.size > 0 && selectedCarriers.size < masterCarriers.length) {
+          if (!selectedCarriers.has((r.carrier || '').trim())) return false;
+        }
+
+        if (selectedProducts.size > 0 && selectedProducts.size < masterProducts.length) {
+          if (!selectedProducts.has((r.product || '').trim())) return false;
+        }
+
+        if (currentTab === 'outbound' && selectedPartners.size > 0 && selectedPartners.size < masterPartners.length) {
+          if (!selectedPartners.has((r.destination || '').trim())) return false;
+        }
+
+        if (currentTab === 'inbound' && selectedPartners.size > 0 && selectedPartners.size < masterPartners.length) {
+          if (!selectedPartners.has((r.vendor_name || '').trim())) return false;
+        }
+
+        if (plateSearch && !(r.plate_no || '').toLowerCase().includes(plateSearch)) return false;
+        if (ticketSearch && !(r.ticket_no || '').toLowerCase().includes(ticketSearch)) return false;
+
+        return true;
+      });
+
+      renderTable();
+      updatePieChart();
+    }
+
+    function resetFilters() {
+      setDefaultDateFilter();
+      document.getElementById('filter-plate').value = '';
+      document.getElementById('filter-ticket').value = '';
+      selectedCarriers.clear();
+      selectedProducts.clear();
+      selectedPartners.clear();
+      updateButtonLabels();
+      populateMultiSelects();
+      applyFilters();
+    }
+
+    function renderTable() {
+      const thead = document.getElementById('table-head');
+      const tbody = document.getElementById('table-body');
+      let totalWeight = 0;
+      let totalAmount = 0;
+
+      if (currentTab === 'outbound') {
+        document.getElementById('table-title').innerText = `รายการส่งออก (พบ ${filteredDataset.length.toLocaleString()} รายการ)`;
+        thead.innerHTML = `
+          <tr>
+            <th class="p-3">วันที่ / เวลา</th>
+            <th class="p-3">ต้นทาง</th>
+            <th class="p-3">ปลายทาง</th>
+            <th class="p-3">เลขบัตรชั่ง</th>
+            <th class="p-3">ทะเบียนรถ</th>
+            <th class="p-3">บริษัทขนส่ง</th>
+            <th class="p-3">สินค้า</th>
+            <th class="p-3 text-right">นน. สุทธิ (กก.)</th>
+          </tr>
+        `;
+        tbody.innerHTML = filteredDataset.map(r => {
+          totalWeight += Number(r.net_weight || 0);
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 text-slate-500">${r.tx_date || ''} ${r.tx_time || ''}</td>
+              <td class="p-3 font-medium">${r.origin || ''}</td>
+              <td class="p-3 font-semibold text-indigo-700">${r.destination || ''}</td>
+              <td class="p-3 font-mono text-xs">${r.ticket_no || ''}</td>
+              <td class="p-3">${r.plate_no || ''}</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-xs">${r.carrier || ''}</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
+              <td class="p-3 text-right font-bold text-slate-900">${Number(r.net_weight || 0).toLocaleString()}</td>
+            </tr>
+          `;
+        }).join('');
+        document.getElementById('stat-amount').innerText = '-';
+      } else {
+        document.getElementById('table-title').innerText = `รายการรับซื้อเข้า (พบ ${filteredDataset.length.toLocaleString()} รายการ)`;
+        thead.innerHTML = `
+          <tr>
+            <th class="p-3">วันที่</th>
+            <th class="p-3">ผู้ขาย (Vendor)</th>
+            <th class="p-3">PO No.</th>
+            <th class="p-3">สินค้า</th>
+            <th class="p-3">บัตรชั่ง (#Seq)</th>
+            <th class="p-3">ทะเบียน</th>
+            <th class="p-3 text-right">นน.สุทธิ</th>
+            <th class="p-3 text-right">ราคา/หน่วย</th>
+            <th class="p-3 text-right">ยอดรวม (บาท)</th>
+          </tr>
+        `;
+        tbody.innerHTML = filteredDataset.map(r => {
+          totalWeight += Number(r.net_weight || 0);
+          totalAmount += Number(r.total_amount || 0);
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 text-slate-500">${r.tx_date || ''}</td>
+              <td class="p-3 font-semibold text-slate-800">${r.vendor_name || ''} <span class="text-xs text-slate-400">(${r.vendor_code || ''})</span></td>
+              <td class="p-3">${r.po_no || ''}</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
+              <td class="p-3 font-mono text-xs">${r.ticket_no} (#${r.seq})</td>
+              <td class="p-3">${r.plate_no || ''}</td>
+              <td class="p-3 text-right font-medium">${Number(r.net_weight || 0).toLocaleString()}</td>
+              <td class="p-3 text-right text-slate-500">${Number(r.unit_price || 0).toFixed(2)}</td>
+              <td class="p-3 text-right font-bold text-emerald-600">${Number(r.total_amount || 0).toLocaleString()}</td>
+            </tr>
+          `;
+        }).join('');
+        document.getElementById('stat-amount').innerText = totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 });
+      }
+
+      document.getElementById('stat-count').innerText = filteredDataset.length.toLocaleString();
+      document.getElementById('stat-weight').innerText = totalWeight.toLocaleString();
+
+      if (filteredDataset.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+      }
+    }
+
+    function updatePieChart() {
+      const productWeights = {};
+      let totalFilteredWeight = 0;
+
+      filteredDataset.forEach(r => {
+        const prod = (r.product || 'ไม่ระบุ').trim();
+        const weight = Number(r.net_weight || 0);
+        productWeights[prod] = (productWeights[prod] || 0) + weight;
+        totalFilteredWeight += weight;
+      });
+
+      const labels = Object.keys(productWeights);
+      const dataValues = Object.values(productWeights);
+      const bgColors = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'];
+
+      const legendContainer = document.getElementById('chart-legend-list');
+      legendContainer.innerHTML = labels.map((label, idx) => {
+        const val = productWeights[label];
+        const pct = totalFilteredWeight > 0 ? ((val / totalFilteredWeight) * 100).toFixed(1) : 0;
+        const color = bgColors[idx % bgColors.length];
+        return `
+          <div class="flex items-center justify-between py-1 border-b border-slate-50">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${color}"></span>
+              <span class="font-medium text-slate-700">${label}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-slate-900">${val.toLocaleString()} กก.</span>
+              <span class="text-slate-400 ml-1">(${pct}%)</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const ctx = document.getElementById('productPieChart').getContext('2d');
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+      }
+
+      pieChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: bgColors,
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          cutout: '65%'
+        }
+      });
+    }
+
+    function printSummaryPDF(includeDetails) {
+      if (filteredDataset.length === 0) {
+        alert('ไม่มีข้อมูลที่กรองอยู่ ไม่สามารถพิมพ์รายงานได้');
+        return;
+      }
+
+      const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const filterStart = document.getElementById('filter-date-start').value || 'ทั้งหมด';
+      const filterEnd = document.getElementById('filter-date-end').value || 'ทั้งหมด';
+
+      const groupMap = {};
+      let totalAllWeight = 0;
+      let totalAllAmount = 0;
+
+      filteredDataset.forEach(r => {
+        const partner = currentTab === 'outbound' ? (r.destination || 'ไม่ระบุ') : (r.vendor_name || 'ไม่ระบุ');
+        const prod = (r.product || 'ไม่ระบุ').trim();
+        const key = `${partner}__${prod}`;
+
+        if (!groupMap[key]) {
+          groupMap[key] = {
+            partner: partner,
+            product: prod,
+            tripCount: 0,
+            totalWeight: 0,
+            totalAmount: 0
+          };
+        }
+        groupMap[key].tripCount += 1;
+        groupMap[key].totalWeight += Number(r.net_weight || 0);
+        groupMap[key].totalAmount += Number(r.total_amount || 0);
+
+        totalAllWeight += Number(r.net_weight || 0);
+        totalAllAmount += Number(r.total_amount || 0);
+      });
+
+      let summaryRowsHtml = Object.values(groupMap).map((g, idx) => `
+        <tr>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; font-weight: bold;">${g.partner}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: center;">${g.product}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right;">${g.tripCount} เที่ยว</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold;">${g.totalWeight.toLocaleString()}</td>
+          ${currentTab === 'inbound' ? `<td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold; color: #047857;">${g.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
+        </tr>
+      `).join('');
+
+      let detailSectionHtml = '';
+      if (includeDetails) {
+        let detailHeaders = currentTab === 'outbound' ? `
+          <tr>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ลำดับ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">วัน-เวลา</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ปลายทาง</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">เลขบัตรชั่ง</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ทะเบียนรถ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ขนส่ง</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">สินค้า</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">นน. สุทธิ (กก.)</th>
+          </tr>
+        ` : `
+          <tr>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ลำดับ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">วันที่</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ผู้ขาย</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">PO No.</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">บัตรชั่ง (#Seq)</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ทะเบียน</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">สินค้า</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">นน.สุทธิ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">ยอดรวม (บาท)</th>
+          </tr>
+        `;
+
+        let detailRows = filteredDataset.map((r, i) => {
+          if (currentTab === 'outbound') {
+            return `
+              <tr>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-size: 10px;">${i + 1}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.tx_date || ''} ${r.tx_time || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.destination || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; font-family: monospace;">${r.ticket_no || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.plate_no || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.carrier || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.product || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; font-weight: bold;">${Number(r.net_weight || 0).toLocaleString()}</td>
+              </tr>
+            `;
+          } else {
+            return `
+              <tr>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-size: 10px;">${i + 1}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.tx_date || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.vendor_name || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.po_no || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; font-family: monospace;">${r.ticket_no} (#${r.seq})</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.plate_no || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.product || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right;">${Number(r.net_weight || 0).toLocaleString()}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; color: #047857;">${Number(r.total_amount || 0).toLocaleString()}</td>
+              </tr>
+            `;
+          }
+        }).join('');
+
+        detailSectionHtml = `
+          <div style="margin-top: 25px;">
+            <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #334155;">📋 รายละเอียดบัตรชั่งทุกรายการ:</div>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>${detailHeaders}</thead>
+              <tbody>${detailRows}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      const reportTypeTitle = includeDetails ? 'รายงานสรุปยอดพร้อมรายละเอียด' : 'ใบสรุปยอดรวม (Summary Only)';
+
+      const printHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${reportTypeTitle}</title>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Sarabun', -apple-system, sans-serif; color: #0f172a; padding: 20px; margin: 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            @page { size: A4 landscape; margin: 10mm; }
+          </style>
+        </head>
+        <body>
+          <div style="border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+              <h1 style="font-size: 18px; font-weight: bold; margin: 0;">${reportTypeTitle} - ${currentTab === 'outbound' ? 'ขนส่งส่งออก' : 'รับซื้อเข้า'}</h1>
+              <p style="font-size: 11px; color: #64748b; margin: 3px 0 0 0;">เอกสารสำหรับการตรวจสอบและลงนามอนุมัติ</p>
+            </div>
+            <div style="text-align: right; font-size: 10px; color: #475569;">
+              พิมพ์เมื่อ: ${printDate}
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; font-size: 11px;">
+            <strong>ช่วงวันที่ข้อมูล:</strong> ${filterStart} ถึง ${filterEnd} | <strong>ประเภท:</strong> ${currentTab === 'outbound' ? 'ส่งออก (Outbound)' : 'รับซื้อ (Inbound)'}
+          </div>
+
+          <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #1e293b;">📊 ตารางสรุปยอดแยกตามกลุ่ม:</div>
+          <table>
+            <thead>
+              <tr style="background: #f1f5f9;">
+                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ลำดับ</th>
+                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; font-size: 11px;">${currentTab === 'outbound' ? 'ปลายทาง (Destination)' : 'ผู้ขาย (Vendor)'}</th>
+                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ชนิดสินค้า</th>
+                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">จำนวนเที่ยว</th>
+                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">น้ำหนักสุทธิรวม (กก.)</th>
+                ${currentTab === 'inbound' ? '<th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">มูลค่ารวม (บาท)</th>' : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${summaryRowsHtml}
+              <tr style="background: #f8fafc; font-weight: bold;">
+                <td colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">ยอดรวมทั้งสิ้น:</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${filteredDataset.length.toLocaleString()} เที่ยว</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #4338ca;">${totalAllWeight.toLocaleString()}</td>
+                ${currentTab === 'inbound' ? `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #047857;">${totalAllAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
+              </tr>
+            </tbody>
+          </table>
+
+          ${detailSectionHtml}
+
+          <div style="display: flex; justify-content: space-between; margin-top: 35px; font-size: 11px; page-break-inside: avoid;">
+            <div style="text-align: center; width: 28%;">
+              <div style="border-bottom: 1px dashed #94a3b8; height: 35px;"></div>
+              <div style="margin-top: 6px; font-weight: bold;">ผู้จัดทำข้อมูล</div>
+              <div style="color: #64748b;">วันที่: _____/_____/_________</div>
+            </div>
+            <div style="text-align: center; width: 28%;">
+              <div style="border-bottom: 1px dashed #94a3b8; height: 35px;"></div>
+              <div style="margin-top: 6px; font-weight: bold;">ผู้ตรวจสอบ</div>
+              <div style="color: #64748b;">วันที่: _____/_____/_________</div>
+            </div>
+            <div style="text-align: center; width: 28%;">
+              <div style="border-bottom: 1px dashed #94a3b8; height: 35px;"></div>
+              <div style="margin-top: 6px; font-weight: bold;">ผู้อนุมัติ</div>
+              <div style="color: #64748b;">วันที่: _____/_____/_________</div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 350);
+    }
+
+    function exportCSV() {
+      if (filteredDataset.length === 0) { alert('ไม่มีข้อมูลสำหรับดาวน์โหลด'); return; }
+      const keys = Object.keys(filteredDataset[0]);
+      let csvContent = "\uFEFF" + keys.join(",") + "\n";
+      filteredDataset.forEach(row => {
+        let values = keys.map(k => `"${String(row[k] || '').replace(/"/g, '""')}"`);
+        csvContent += values.join(",") + "\n";
+      });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // เริ่มต้นระบบ: ตรวจสอบสถานะการล็อกอิน
+    checkAuthSession();
+  </script>
+</body>
+</html>
