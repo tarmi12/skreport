@@ -17,7 +17,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-  <!-- ================= หน้าจอล็อกอิน (Login Modal / Screen) ================= -->
+  <!-- ================= หน้าจอล็อกอิน (Login Screen) ================= -->
   <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 sm:p-8">
       <div class="text-center mb-6">
@@ -31,7 +31,7 @@
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมลผู้ใช้งาน (Email)</label>
-          <input type="email" id="login-email" required placeholder="name@company.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-indigo-500">
+          <input type="email" id="login-email" required placeholder="tar@gmail.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-indigo-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
@@ -64,7 +64,6 @@
             📥 รับเข้า (Inbound)
           </button>
         </div>
-        <!-- แสดงผู้ใช้ & ปุ่มออกจากระบบ -->
         <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
           <span id="user-display" class="text-xs text-slate-500 font-medium"></span>
           <button onclick="handleLogout()" class="px-3 py-1.5 text-xs bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg font-semibold transition">
@@ -217,6 +216,20 @@
           <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
+
+      <!-- ส่วนควบคุมแบ่งหน้า (Pagination 50 แถวต่อหน้า) -->
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+        <div id="page-info">กำลังโหลด...</div>
+        <div class="flex items-center gap-1">
+          <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
+            ◀ ก่อนหน้า
+          </button>
+          <span id="page-number-display" class="px-3 py-1.5 font-bold text-slate-700">1 / 1</span>
+          <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
+            ถัดไป ▶
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -228,6 +241,10 @@
     let currentTab = 'outbound';
     let rawDataset = [];
     let filteredDataset = [];
+
+    // ตัวแปร Pagination
+    let currentPage = 1;
+    const PAGE_SIZE = 50; // หน้าละ 50 แถว
 
     let masterCarriers = [];
     let masterProducts = [];
@@ -324,22 +341,41 @@
       document.getElementById('drop-partner-title').innerText = tab === 'outbound' ? 'เลือกปลายทาง' : 'เลือกผู้ขาย';
       document.getElementById('box-carrier').style.display = tab === 'outbound' ? 'block' : 'none';
 
+      currentPage = 1;
       resetFilters();
       fetchData();
     }
 
+    // ฟังก์ชันแปลงวันที่แบบครอบคลุม: รองรับ DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD และ พ.ศ.
     function parseDate(dateStr) {
       if (!dateStr) return null;
-      const parts = dateStr.split('-');
+      const clean = String(dateStr).trim().split(' ')[0]; // ตัดเวลาทิ้ง
+      const separator = clean.includes('/') ? '/' : '-';
+      const parts = clean.split(separator);
+
       if (parts.length === 3) {
-        let year = parseInt(parts[2]);
-        if (year < 100) year += 2000;
-        return new Date(year, parseInt(parts[1]) - 1, parseInt(parts[0]));
+        let day, month, year;
+        if (parts[0].length === 4) {
+          // รูปแบบ YYYY-MM-DD
+          year = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10) - 1;
+          day = parseInt(parts[2], 10);
+        } else {
+          // รูปแบบ DD-MM-YYYY หรือ DD/MM/YYYY
+          day = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10) - 1;
+          year = parseInt(parts[2], 10);
+          if (year > 2500) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+          else if (year < 100) year += 2000;
+        }
+
+        const d = new Date(year, month, day);
+        return isNaN(d.getTime()) ? null : d;
       }
       return null;
     }
 
-    // วันที่ 1 ถึง "วันสิ้นเดือนปัจจุบัน" อัตโนมัติ
+    // วันที่ 1 ถึง สิ้นเดือนปัจจุบัน
     function setDefaultDateFilter() {
       const now = new Date();
       const year = now.getFullYear();
@@ -367,6 +403,7 @@
 
       rawDataset = data || [];
       populateMultiSelects();
+      currentPage = 1;
       applyFilters();
     }
 
@@ -410,6 +447,7 @@
       const targetSet = type === 'carrier' ? selectedCarriers : (type === 'product' ? selectedProducts : selectedPartners);
       if (isChecked) { targetSet.add(value); } else { targetSet.delete(value); }
       updateButtonLabels();
+      currentPage = 1;
       applyFilters();
     }
 
@@ -429,6 +467,7 @@
 
       renderCheckboxes(listId, masterList, targetSet, type);
       updateButtonLabels();
+      currentPage = 1;
       applyFilters();
     }
 
@@ -443,22 +482,34 @@
       document.getElementById('btn-label-partner').innerText = ptSize === 0 ? 'เลือกรายการ (ทั้งหมด)' : (ptSize === masterPartners.length ? 'รายการ (ทั้งหมด)' : `เลือกรายการ (${ptSize})`);
     }
 
+    // ฟังก์ชันกรองข้อมูลที่แก้จุดบั๊กวันที่แล้ว
     function applyFilters() {
       const startVal = document.getElementById('filter-date-start').value;
       const endVal = document.getElementById('filter-date-end').value;
       const plateSearch = document.getElementById('filter-plate').value.toLowerCase().trim();
       const ticketSearch = document.getElementById('filter-ticket').value.toLowerCase().trim();
 
-      const startDate = startVal ? new Date(startVal) : null;
-      const endDate = endVal ? new Date(endVal) : null;
-      if (endDate) endDate.setHours(23, 59, 59, 999);
+      // สร้าง Date Object แบบตั้งชั่วโมงให้แม่นยำ
+      let startDate = null;
+      let endDate = null;
+
+      if (startVal) {
+        const [sY, sM, sD] = startVal.split('-').map(Number);
+        startDate = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
+      }
+
+      if (endVal) {
+        const [eY, eM, eD] = endVal.split('-').map(Number);
+        endDate = new Date(eY, eM - 1, eD, 23, 59, 59, 999);
+      }
 
       filteredDataset = rawDataset.filter(r => {
+        // กรองวันที่
         if (startDate || endDate) {
           const rowDate = parseDate(r.tx_date);
           if (rowDate) {
-            if (startDate && rowDate < startDate) return false;
-            if (endDate && rowDate > endDate) return false;
+            if (startDate && rowDate.getTime() < startDate.getTime()) return false;
+            if (endDate && rowDate.getTime() > endDate.getTime()) return false;
           }
         }
 
@@ -497,17 +548,52 @@
       selectedPartners.clear();
       updateButtonLabels();
       populateMultiSelects();
+      currentPage = 1;
       applyFilters();
     }
 
+    // ฟังก์ชันเลื่อนหน้า
+    function changePage(delta) {
+      const maxPage = Math.ceil(filteredDataset.length / PAGE_SIZE) || 1;
+      currentPage += delta;
+      if (currentPage < 1) currentPage = 1;
+      if (currentPage > maxPage) currentPage = maxPage;
+      renderTable();
+    }
+
+    // แสดงตารางแบบแบ่งหน้า 50 รายการ
     function renderTable() {
       const thead = document.getElementById('table-head');
       const tbody = document.getElementById('table-body');
+
       let totalWeight = 0;
       let totalAmount = 0;
 
+      // รวมยอดทั้งหมดของชุดที่ผ่านการกรอง (ไม่ใช่แค่ 50 แถว)
+      filteredDataset.forEach(r => {
+        totalWeight += Number(r.net_weight || 0);
+        totalAmount += Number(r.total_amount || 0);
+      });
+
+      // ตัดแสดงผลเฉพาะหน้าที่เลือก (Pagination)
+      const totalCount = filteredDataset.length;
+      const maxPage = Math.ceil(totalCount / PAGE_SIZE) || 1;
+      if (currentPage > maxPage) currentPage = maxPage;
+
+      const startIndex = (currentPage - 1) * PAGE_SIZE;
+      const endIndex = Math.min(startIndex + PAGE_SIZE, totalCount);
+      const pageData = filteredDataset.slice(startIndex, endIndex);
+
+      // อัปเดตข้อความ Pagination Controller
+      document.getElementById('page-info').innerText = totalCount > 0 
+        ? `แสดงรายการที่ ${(startIndex + 1).toLocaleString()} - ${endIndex.toLocaleString()} จากทั้งหมด ${totalCount.toLocaleString()} รายการ`
+        : 'ไม่มีรายการข้อมูล';
+      document.getElementById('page-number-display').innerText = `${currentPage} / ${maxPage}`;
+      document.getElementById('btn-prev-page').disabled = (currentPage <= 1);
+      document.getElementById('btn-next-page').disabled = (currentPage >= maxPage || totalCount === 0);
+
       if (currentTab === 'outbound') {
-        document.getElementById('table-title').innerText = `รายการส่งออก (พบ ${filteredDataset.length.toLocaleString()} รายการ)`;
+        document.getElementById('table-title').innerText = `รายการส่งออก (พบ ${totalCount.toLocaleString()} รายการ)`;
         thead.innerHTML = `
           <tr>
             <th class="p-3">วันที่ / เวลา</th>
@@ -520,24 +606,21 @@
             <th class="p-3 text-right">นน. สุทธิ (กก.)</th>
           </tr>
         `;
-        tbody.innerHTML = filteredDataset.map(r => {
-          totalWeight += Number(r.net_weight || 0);
-          return `
-            <tr class="hover:bg-slate-50">
-              <td class="p-3 text-slate-500">${r.tx_date || ''} ${r.tx_time || ''}</td>
-              <td class="p-3 font-medium">${r.origin || ''}</td>
-              <td class="p-3 font-semibold text-indigo-700">${r.destination || ''}</td>
-              <td class="p-3 font-mono text-xs">${r.ticket_no || ''}</td>
-              <td class="p-3">${r.plate_no || ''}</td>
-              <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-xs">${r.carrier || ''}</span></td>
-              <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
-              <td class="p-3 text-right font-bold text-slate-900">${Number(r.net_weight || 0).toLocaleString()}</td>
-            </tr>
-          `;
-        }).join('');
+        tbody.innerHTML = pageData.map(r => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 text-slate-500">${r.tx_date || ''} ${r.tx_time || ''}</td>
+            <td class="p-3 font-medium">${r.origin || ''}</td>
+            <td class="p-3 font-semibold text-indigo-700">${r.destination || ''}</td>
+            <td class="p-3 font-mono text-xs">${r.ticket_no || ''}</td>
+            <td class="p-3">${r.plate_no || ''}</td>
+            <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-xs">${r.carrier || ''}</span></td>
+            <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
+            <td class="p-3 text-right font-bold text-slate-900">${Number(r.net_weight || 0).toLocaleString()}</td>
+          </tr>
+        `).join('');
         document.getElementById('stat-amount').innerText = '-';
       } else {
-        document.getElementById('table-title').innerText = `รายการรับซื้อเข้า (พบ ${filteredDataset.length.toLocaleString()} รายการ)`;
+        document.getElementById('table-title').innerText = `รายการรับซื้อเข้า (พบ ${totalCount.toLocaleString()} รายการ)`;
         thead.innerHTML = `
           <tr>
             <th class="p-3">วันที่</th>
@@ -551,30 +634,26 @@
             <th class="p-3 text-right">ยอดรวม (บาท)</th>
           </tr>
         `;
-        tbody.innerHTML = filteredDataset.map(r => {
-          totalWeight += Number(r.net_weight || 0);
-          totalAmount += Number(r.total_amount || 0);
-          return `
-            <tr class="hover:bg-slate-50">
-              <td class="p-3 text-slate-500">${r.tx_date || ''}</td>
-              <td class="p-3 font-semibold text-slate-800">${r.vendor_name || ''} <span class="text-xs text-slate-400">(${r.vendor_code || ''})</span></td>
-              <td class="p-3">${r.po_no || ''}</td>
-              <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
-              <td class="p-3 font-mono text-xs">${r.ticket_no} (#${r.seq})</td>
-              <td class="p-3">${r.plate_no || ''}</td>
-              <td class="p-3 text-right font-medium">${Number(r.net_weight || 0).toLocaleString()}</td>
-              <td class="p-3 text-right text-slate-500">${Number(r.unit_price || 0).toFixed(2)}</td>
-              <td class="p-3 text-right font-bold text-emerald-600">${Number(r.total_amount || 0).toLocaleString()}</td>
-            </tr>
-          `;
-        }).join('');
+        tbody.innerHTML = pageData.map(r => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 text-slate-500">${r.tx_date || ''}</td>
+            <td class="p-3 font-semibold text-slate-800">${r.vendor_name || ''} <span class="text-xs text-slate-400">(${r.vendor_code || ''})</span></td>
+            <td class="p-3">${r.po_no || ''}</td>
+            <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
+            <td class="p-3 font-mono text-xs">${r.ticket_no} (#${r.seq})</td>
+            <td class="p-3">${r.plate_no || ''}</td>
+            <td class="p-3 text-right font-medium">${Number(r.net_weight || 0).toLocaleString()}</td>
+            <td class="p-3 text-right text-slate-500">${Number(r.unit_price || 0).toFixed(2)}</td>
+            <td class="p-3 text-right font-bold text-emerald-600">${Number(r.total_amount || 0).toLocaleString()}</td>
+          </tr>
+        `).join('');
         document.getElementById('stat-amount').innerText = totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 });
       }
 
-      document.getElementById('stat-count').innerText = filteredDataset.length.toLocaleString();
+      document.getElementById('stat-count').innerText = totalCount.toLocaleString();
       document.getElementById('stat-weight').innerText = totalWeight.toLocaleString();
 
-      if (filteredDataset.length === 0) {
+      if (totalCount === 0) {
         tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
       }
     }
@@ -860,7 +939,7 @@
       document.body.removeChild(link);
     }
 
-    // เริ่มต้นระบบ: ตรวจสอบสถานะการล็อกอิน
+    // เริ่มต้นระบบ
     checkAuthSession();
   </script>
 </body>
