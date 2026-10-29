@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบรายงานขนส่งและรับซื้อ</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chart.js สำหรับ Pie Chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     .dropdown-menu { display: none; }
@@ -17,7 +14,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-  <!-- ================= หน้าจอล็อกอิน (Login Screen) ================= -->
+  <!-- ================= หน้าจอล็อกอิน ================= -->
   <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 sm:p-8">
       <div class="text-center mb-6">
@@ -47,16 +44,14 @@
     </div>
   </div>
 
-  <!-- ================= แอพหลัก (Main Dashboard) ================= -->
+  <!-- ================= แอพหลัก ================= -->
   <div id="main-content" class="hidden max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-    <!-- Header -->
     <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">📊 ระบบรายงานขนส่งและรับซื้อ</h1>
         <p class="text-sm text-slate-500">ระบบคัดกรองข้อมูล, วิเคราะห์แดชบอร์ดสัดส่วน และออกรายงานสรุป PDF</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <!-- สลับประเภทงาน Outbound / Inbound -->
         <div class="flex gap-2 bg-slate-200 p-1.5 rounded-xl">
           <button id="btn-outbound" onclick="switchDataTab('outbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm">
             🚚 ส่งออก (Outbound)
@@ -74,7 +69,7 @@
       </div>
     </header>
 
-    <!-- เมนูสลับมุมมอง: ตารางข้อมูล vs แดชบอร์ดวิเคราะห์ -->
+    <!-- สลับมุมมอง -->
     <div class="flex border-b border-slate-200 mt-6 gap-4">
       <button id="tab-btn-table" onclick="switchViewTab('table')" class="pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition flex items-center gap-2">
         📑 ตารางข้อมูลและรายงาน
@@ -84,24 +79,26 @@
       </button>
     </div>
 
-    <!-- ================= VIEW 1: ส่วนตารางข้อมูลและตัวกรอง ================= -->
+    <!-- VIEW 1: ตารางและตัวกรอง -->
     <div id="view-table-section">
-      <!-- Filters Panel -->
+      <!-- กล่องตัวกรองข้อมูล -->
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6">
         <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-          <h3 class="text-sm font-bold text-slate-700">🔍 ตัวกรองข้อมูล</h3>
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+            🔍 กำหนดเงื่อนไขตัวกรองข้อมูล
+          </h3>
           <button onclick="resetFilters()" class="text-xs text-rose-600 hover:underline font-semibold">ล้างตัวกรองทั้งหมด (Reset)</button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ตั้งแต่วันที่</label>
-            <input type="date" id="filter-date-start" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="date" id="filter-date-start" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ถึงวันที่</label>
-            <input type="date" id="filter-date-end" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="date" id="filter-date-end" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
           </div>
 
           <div id="box-carrier" class="relative">
@@ -162,53 +159,68 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-100">
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาทะเบียนรถ</label>
-            <input type="text" id="filter-plate" onkeyup="applyFilters()" placeholder="พิมพ์เลขทะเบียน..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="text" id="filter-plate" onkeypress="handleEnterFilter(event)" placeholder="พิมพ์เลขทะเบียนแล้วกดปุ่มค้นหา..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาเลขบัตรชั่ง</label>
-            <input type="text" id="filter-ticket" onkeyup="applyFilters()" placeholder="พิมพ์เลขบัตรชั่ง..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="text" id="filter-ticket" onkeypress="handleEnterFilter(event)" placeholder="พิมพ์เลขบัตรชั่งแล้วกดปุ่มค้นหา..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+          </div>
+        </div>
+
+        <!-- ปุ่มกดเพื่อเริ่มการกรองข้อมูล -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+          <button onclick="applyFiltersManual()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2">
+            🔍 ค้นหา / กรองข้อมูล
+          </button>
+        </div>
+      </div>
+
+      <!-- แถบแสดงช่วงวันที่ที่กำลังกรอง และ KPI Cards -->
+      <div class="my-6">
+        <div class="bg-indigo-50/70 border border-indigo-200/60 rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between text-xs text-indigo-900 font-semibold">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📅</span>
+            <span>ช่วงวันที่ข้อมูลที่กำลังแสดง: <span id="kpi-date-range-display" class="font-bold underline text-indigo-700">-</span></span>
+          </div>
+          <span class="text-indigo-400 text-[11px] hidden sm:inline">(คำนวณตามผลการกรองล่าสุด)</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-slate-400 uppercase">จำนวนรายการ</span>
+              <div id="stat-count" class="text-2xl font-extrabold text-slate-900 mt-0.5">0</div>
+            </div>
+            <span class="text-2xl">📋</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-slate-400 uppercase">น้ำหนักสุทธิรวม (กก.)</span>
+              <div id="stat-weight" class="text-2xl font-extrabold text-indigo-600 mt-0.5">0</div>
+            </div>
+            <span class="text-2xl">⚖️</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-slate-400 uppercase">มูลค่ารวม (บาท)</span>
+              <div id="stat-amount" class="text-2xl font-extrabold text-emerald-600 mt-0.5">-</div>
+            </div>
+            <span class="text-2xl">💰</span>
           </div>
         </div>
       </div>
 
-      <!-- สรุปตัวเลขยอดกรองแบบย่อ -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase">จำนวนรายการ</span>
-            <div id="stat-count" class="text-2xl font-extrabold text-slate-900 mt-0.5">0</div>
-          </div>
-          <span class="text-2xl">📋</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase">น้ำหนักสุทธิรวม (กก.)</span>
-            <div id="stat-weight" class="text-2xl font-extrabold text-indigo-600 mt-0.5">0</div>
-          </div>
-          <span class="text-2xl">⚖️</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase">มูลค่ารวม (บาท)</span>
-            <div id="stat-amount" class="text-2xl font-extrabold text-emerald-600 mt-0.5">-</div>
-          </div>
-          <span class="text-2xl">💰</span>
-        </div>
-      </div>
-
-      <!-- Table & Action Buttons -->
+      <!-- Table Section -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-4 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <h2 id="table-title" class="font-bold text-slate-800 text-lg">รายการข้อมูล</h2>
           
           <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-            <!-- ปุ่มสวิตช์ Toggle เลือกแสดง/ซ่อนยอดเงินใน PDF -->
             <label class="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg select-none">
               <input type="checkbox" id="toggle-show-amount" checked class="w-4 h-4 text-indigo-600 rounded focus:ring-0">
               <span class="text-xs font-semibold text-slate-700">แสดงยอดเงินในรายงาน</span>
             </label>
 
-            <!-- ปุ่มออกรายงาน PDF (เปิด Preview ก่อนพิมพ์) -->
             <button onclick="previewSummaryPDF(false)" class="px-3 py-2 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold flex items-center gap-1.5 transition">
               📋 พิมพ์สรุปยอด (Summary)
             </button>
@@ -233,7 +245,6 @@
           </table>
         </div>
 
-        <!-- Pagination 50 รายการต่อหน้า -->
         <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
           <div id="page-info">กำลังโหลด...</div>
           <div class="flex items-center gap-1">
@@ -249,7 +260,7 @@
       </div>
     </div>
 
-    <!-- ================= VIEW 2: ส่วนแดชบอร์ดภาพรวมรายเดือน ================= -->
+    <!-- VIEW 2: แดชบอร์ดภาพรวมเดือน -->
     <div id="view-dashboard-section" class="hidden mt-6 space-y-6">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -262,7 +273,6 @@
         </div>
       </div>
 
-      <!-- สรุปตัวเลขรายเดือน -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">จำนวนรายการทั้งหมดในเดือน</span>
@@ -278,7 +288,6 @@
         </div>
       </div>
 
-      <!-- กราฟวงกลม Pie Chart -->
       <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-8">
         <div class="w-full lg:w-1/2 h-72 flex items-center justify-center relative">
           <canvas id="productPieChart"></canvas>
@@ -292,29 +301,29 @@
     </div>
   </div>
 
-  <!-- ================= หน้าต่างแสดงตัวอย่างก่อนพิมพ์ (Print Preview Modal) ================= -->
-  <div id="preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden">
-      <!-- Modal Header -->
-      <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+  <!-- ================= หน้าต่างแสดงตัวอย่างก่อนพิมพ์ (Modal กว้างเต็มตา 96vw / 96vh) ================= -->
+  <div id="preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-[96vw] h-[96vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-lg">👁️</span>
-          <h3 class="text-sm font-bold text-slate-800">ตัวอย่างเอกสารก่อนพิมพ์ (Print Preview)</h3>
-          <span class="text-xs text-slate-400 ml-2">สามารถกด Ctrl+P หรือคลิกปุ่มพิมพ์ด้านขวา</span>
+          <span class="text-xl">👁️</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">ตัวอย่างเอกสารก่อนพิมพ์ (Print Preview)</h3>
+            <span class="text-[11px] text-slate-400">ตรวจสอบความถูกต้องก่อนสั่งพิมพ์ หรือใช้คีย์ลัด Ctrl + P</span>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="executePrint()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1.5 shadow transition">
+        <div class="flex items-center gap-3">
+          <button onclick="executePrint()" class="px-5 py-2.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition">
             🖨️ สั่งพิมพ์ / บันทึก PDF (Print)
           </button>
-          <button onclick="closePreviewModal()" class="px-3 py-2 text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition">
-            ✕ ปิด
+          <button onclick="closePreviewModal()" class="px-4 py-2.5 text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition">
+            ✕ ปิดหน้าต่าง
           </button>
         </div>
       </div>
 
-      <!-- Modal Body (Preview Iframe) -->
-      <div class="flex-1 bg-slate-200 p-2 sm:p-4 overflow-hidden">
-        <iframe id="preview-iframe" class="w-full h-full bg-white rounded-lg shadow border border-slate-300"></iframe>
+      <div class="flex-1 bg-slate-300 p-2 sm:p-4 overflow-hidden">
+        <iframe id="preview-iframe" class="w-full h-full bg-white rounded-xl shadow-lg border border-slate-300"></iframe>
       </div>
     </div>
   </div>
@@ -343,7 +352,6 @@
     let pieChartInstance = null;
     let currentGeneratedPrintHtml = '';
 
-    // ================= ระบบ Authentication =================
     async function checkAuthSession() {
       const { data: { session } } = await client.auth.getSession();
       if (session) {
@@ -403,7 +411,6 @@
       }
     }
 
-    // ================= ฟังก์ชันสลับแท็บ =================
     function switchViewTab(view) {
       currentView = view;
       if (view === 'table') {
@@ -451,9 +458,15 @@
       }
     });
 
-    // ================= ระบบแปลงวันที่ (รองรับทุกฟอร์แมต) =================
     function parseDate(dateStr) {
       if (!dateStr) return null;
+      if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
+
+      if (typeof dateStr === 'string' && (dateStr.includes('GMT') || dateStr.includes('T'))) {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) return d;
+      }
+
       const clean = String(dateStr).trim().split(' ')[0];
       const separator = clean.includes('/') ? '/' : '-';
       const parts = clean.split(separator);
@@ -471,11 +484,19 @@
           if (year > 2500) year -= 543;
           else if (year < 100) year += 2000;
         }
-
         const d = new Date(year, month, day);
         return isNaN(d.getTime()) ? null : d;
       }
       return null;
+    }
+
+    function formatDisplayDate(dateStr) {
+      const d = parseDate(dateStr);
+      if (!d) return dateStr || '-';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear() + 543;
+      return `${day}/${month}/${year}`;
     }
 
     function setDefaultDateFilter() {
@@ -491,7 +512,6 @@
       document.getElementById('filter-date-end').value = lastDay;
     }
 
-    // ================= ดึงข้อมูลจาก Supabase =================
     async function fetchData() {
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">กำลังดึงข้อมูล...</td></tr>';
@@ -507,7 +527,7 @@
       rawDataset = data || [];
       populateMultiSelects();
       currentPage = 1;
-      applyFilters();
+      executeFilterLogic();
       if (currentView === 'dashboard') {
         renderMonthDashboard();
       }
@@ -553,8 +573,6 @@
       const targetSet = type === 'carrier' ? selectedCarriers : (type === 'product' ? selectedProducts : selectedPartners);
       if (isChecked) { targetSet.add(value); } else { targetSet.delete(value); }
       updateButtonLabels();
-      currentPage = 1;
-      applyFilters();
     }
 
     function selectAll(type, isSelectAll) {
@@ -571,8 +589,6 @@
 
       renderCheckboxes(listId, masterList, targetSet, type);
       updateButtonLabels();
-      currentPage = 1;
-      applyFilters();
     }
 
     function updateButtonLabels() {
@@ -586,8 +602,18 @@
       document.getElementById('btn-label-partner').innerText = ptSize === 0 ? 'เลือกรายการ (ทั้งหมด)' : (ptSize === masterPartners.length ? 'รายการ (ทั้งหมด)' : `เลือกรายการ (${ptSize})`);
     }
 
-    // ================= กรองข้อมูล =================
-    function applyFilters() {
+    function handleEnterFilter(e) {
+      if (e.key === 'Enter') {
+        applyFiltersManual();
+      }
+    }
+
+    function applyFiltersManual() {
+      currentPage = 1;
+      executeFilterLogic();
+    }
+
+    function executeFilterLogic() {
       const startVal = document.getElementById('filter-date-start').value;
       const endVal = document.getElementById('filter-date-end').value;
       const plateSearch = document.getElementById('filter-plate').value.toLowerCase().trim();
@@ -604,6 +630,18 @@
       if (endVal) {
         const [eY, eM, eD] = endVal.split('-').map(Number);
         endDate = new Date(eY, eM - 1, eD, 23, 59, 59, 999);
+      }
+
+      // อัปเดตข้อความวันที่บนกล่อง KPI
+      const kpiDateEl = document.getElementById('kpi-date-range-display');
+      if (startVal && endVal) {
+        kpiDateEl.innerText = `${formatDisplayDate(startVal)} ถึง ${formatDisplayDate(endVal)}`;
+      } else if (startVal) {
+        kpiDateEl.innerText = `ตั้งแต่วันที่ ${formatDisplayDate(startVal)} เป็นต้นไป`;
+      } else if (endVal) {
+        kpiDateEl.innerText = `ถึงวันที่ ${formatDisplayDate(endVal)}`;
+      } else {
+        kpiDateEl.innerText = `ข้อมูลทั้งหมด (ไม่ได้กำหนดช่วงวันที่)`;
       }
 
       filteredDataset = rawDataset.filter(r => {
@@ -650,7 +688,7 @@
       updateButtonLabels();
       populateMultiSelects();
       currentPage = 1;
-      applyFilters();
+      executeFilterLogic();
     }
 
     function changePage(delta) {
@@ -704,7 +742,7 @@
         `;
         tbody.innerHTML = pageData.map(r => `
           <tr class="hover:bg-slate-50">
-            <td class="p-3 text-slate-500">${r.tx_date || ''} ${r.tx_time || ''}</td>
+            <td class="p-3 text-slate-500">${formatDisplayDate(r.tx_date)} ${r.tx_time || ''}</td>
             <td class="p-3 font-medium">${r.origin || ''}</td>
             <td class="p-3 font-semibold text-indigo-700">${r.destination || ''}</td>
             <td class="p-3 font-mono text-xs">${r.ticket_no || ''}</td>
@@ -732,7 +770,7 @@
         `;
         tbody.innerHTML = pageData.map(r => `
           <tr class="hover:bg-slate-50">
-            <td class="p-3 text-slate-500">${r.tx_date || ''}</td>
+            <td class="p-3 text-slate-500">${formatDisplayDate(r.tx_date)}</td>
             <td class="p-3 font-semibold text-slate-800">${r.vendor_name || ''} <span class="text-xs text-slate-400">(${r.vendor_code || ''})</span></td>
             <td class="p-3">${r.po_no || ''}</td>
             <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
@@ -754,7 +792,6 @@
       }
     }
 
-    // ================= แดชบอร์ดภาพรวมประจำเดือน =================
     function renderMonthDashboard() {
       const monthPickerVal = document.getElementById('dashboard-month-picker').value;
       if (!monthPickerVal) return;
@@ -834,26 +871,38 @@
       });
     }
 
-    // ================= ระบบสร้างเอกสารรายงาน PDF พร้อม Preview Modal =================
     function previewSummaryPDF(includeDetails) {
       if (filteredDataset.length === 0) {
         alert('ไม่มีข้อมูลที่กรองอยู่ ไม่สามารถพิมพ์รายงานได้');
         return;
       }
 
+      const sortedDataset = [...filteredDataset].sort((a, b) => {
+        const da = parseDate(a.tx_date);
+        const db = parseDate(b.tx_date);
+        const timeA = da ? da.getTime() : 0;
+        const timeB = db ? db.getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return (a.seq || 0) - (b.seq || 0);
+      });
+
       const showAmount = document.getElementById('toggle-show-amount').checked && (currentTab === 'inbound');
       const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const filterStart = document.getElementById('filter-date-start').value || 'ทั้งหมด';
-      const filterEnd = document.getElementById('filter-date-end').value || 'ทั้งหมด';
+      
+      const filterStart = document.getElementById('filter-date-start').value;
+      const filterEnd = document.getElementById('filter-date-end').value;
+      const formattedDateRange = (filterStart && filterEnd) 
+        ? `${formatDisplayDate(filterStart)} ถึง ${formatDisplayDate(filterEnd)}`
+        : 'ทั้งหมด';
 
-      // รวมยอด Grouped ตามปลายทาง/ผู้ขาย และ สินค้า
       const groupMap = {};
       let totalAllWeight = 0;
       let totalAllAmount = 0;
 
-      filteredDataset.forEach(r => {
-        const partner = currentTab === 'outbound' ? (r.destination || 'ไม่ระบุ') : (r.vendor_name || 'ไม่ระบุ');
-        const prod = (r.product || 'ไม่ระบุ').trim();
+      sortedDataset.forEach(r => {
+        const rawPartner = currentTab === 'outbound' ? (r.destination || 'ไม่ระบุ') : (r.vendor_name || 'ไม่ระบุ');
+        const partner = rawPartner.replace(/\s+/g, ' ').trim();
+        const prod = (r.product || 'ไม่ระบุ').replace(/\s+/g, ' ').trim();
         const key = `${partner}__${prod}`;
 
         if (!groupMap[key]) {
@@ -889,7 +938,8 @@
         let detailHeaders = currentTab === 'outbound' ? `
           <tr>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ลำดับ</th>
-            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">วัน-เวลา</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">วันที่</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">เวลา</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ปลายทาง</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">เลขบัตรชั่ง</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ทะเบียนรถ</th>
@@ -911,12 +961,13 @@
           </tr>
         `;
 
-        let detailRows = filteredDataset.map((r, i) => {
+        let detailRows = sortedDataset.map((r, i) => {
           if (currentTab === 'outbound') {
             return `
               <tr>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-size: 10px;">${i + 1}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.tx_date || ''} ${r.tx_time || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${formatDisplayDate(r.tx_date)}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.tx_time || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.destination || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; font-family: monospace;">${r.ticket_no || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.plate_no || ''}</td>
@@ -929,7 +980,7 @@
             return `
               <tr>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-size: 10px;">${i + 1}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.tx_date || ''}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${formatDisplayDate(r.tx_date)}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.vendor_name || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.po_no || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; font-family: monospace;">${r.ticket_no} (#${r.seq})</td>
@@ -979,10 +1030,9 @@
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; font-size: 11px;">
-            <strong>ช่วงวันที่ข้อมูลที่เลือก:</strong> ${filterStart} ถึง ${filterEnd} | <strong>ประเภท:</strong> ${currentTab === 'outbound' ? 'ส่งออก (Outbound)' : 'รับซื้อ (Inbound)'}
+            <strong>ช่วงวันที่ข้อมูลที่เลือก:</strong> ${formattedDateRange} | <strong>ประเภท:</strong> ${currentTab === 'outbound' ? 'ส่งออก (Outbound)' : 'รับซื้อ (Inbound)'}
           </div>
 
-          <!-- ตารางสรุปภาพรวม -->
           <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #1e293b;">📊 ตารางสรุปยอดแยกตามกลุ่ม:</div>
           <table>
             <thead>
@@ -999,17 +1049,15 @@
               ${summaryRowsHtml}
               <tr style="background: #f8fafc; font-weight: bold;">
                 <td colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">ยอดรวมทั้งสิ้น:</td>
-                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${filteredDataset.length.toLocaleString()} เที่ยว</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${sortedDataset.length.toLocaleString()} เที่ยว</td>
                 <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #4338ca;">${totalAllWeight.toLocaleString()}</td>
                 ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #047857;">${totalAllAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
               </tr>
             </tbody>
           </table>
 
-          <!-- ตารางรายละเอียดแทรก -->
           ${detailSectionHtml}
 
-          <!-- ส่วนลงนาม -->
           <div style="display: flex; justify-content: space-between; margin-top: 35px; font-size: 11px; page-break-inside: avoid;">
             <div style="text-align: center; width: 28%;">
               <div style="border-bottom: 1px dashed #94a3b8; height: 35px;"></div>
@@ -1031,7 +1079,6 @@
         </html>
       `;
 
-      // แสดงบน Iframe ของ Preview Modal
       const iframe = document.getElementById('preview-iframe');
       iframe.contentWindow.document.open();
       iframe.contentWindow.document.write(currentGeneratedPrintHtml);
@@ -1050,7 +1097,6 @@
       iframe.contentWindow.print();
     }
 
-    // รองรับกดปุ่มคีย์ลัด Ctrl + P ขณะเปิดดูพรีวิว
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
         const modal = document.getElementById('preview-modal');
@@ -1079,7 +1125,6 @@
       document.body.removeChild(link);
     }
 
-    // เริ่มต้นระบบ
     checkAuthSession();
   </script>
 </body>
