@@ -31,7 +31,7 @@
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมลผู้ใช้งาน (Email)</label>
-          <input type="email" id="login-email" required placeholder="tar@gmail.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-indigo-500">
+          <input type="email" id="login-email" required placeholder="name@company.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-indigo-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
@@ -53,14 +53,15 @@
     <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">📊 ระบบรายงานขนส่งและรับซื้อ</h1>
-        <p class="text-sm text-slate-500">ระบบตัวกรอง, วิเคราะห์สัดส่วนสินค้า (Pie Chart) และออกรายงาน PDF</p>
+        <p class="text-sm text-slate-500">ระบบคัดกรองข้อมูล, วิเคราะห์แดชบอร์ดสัดส่วน และออกรายงานสรุป PDF</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
+        <!-- สลับประเภทงาน Outbound / Inbound -->
         <div class="flex gap-2 bg-slate-200 p-1.5 rounded-xl">
-          <button id="btn-outbound" onclick="switchTab('outbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm">
+          <button id="btn-outbound" onclick="switchDataTab('outbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm">
             🚚 ส่งออก (Outbound)
           </button>
-          <button id="btn-inbound" onclick="switchTab('inbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900">
+          <button id="btn-inbound" onclick="switchDataTab('inbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900">
             📥 รับเข้า (Inbound)
           </button>
         </div>
@@ -73,162 +74,247 @@
       </div>
     </header>
 
-    <!-- Filters Panel -->
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6">
-      <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-        <h3 class="text-sm font-bold text-slate-700">🔍 ตัวกรองข้อมูล</h3>
-        <button onclick="resetFilters()" class="text-xs text-rose-600 hover:underline font-semibold">ล้างตัวกรองทั้งหมด (Reset)</button>
+    <!-- เมนูสลับมุมมอง: ตารางข้อมูล vs แดชบอร์ดวิเคราะห์ -->
+    <div class="flex border-b border-slate-200 mt-6 gap-4">
+      <button id="tab-btn-table" onclick="switchViewTab('table')" class="pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition flex items-center gap-2">
+        📑 ตารางข้อมูลและรายงาน
+      </button>
+      <button id="tab-btn-dashboard" onclick="switchViewTab('dashboard')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2">
+        📈 แดชบอร์ดวิเคราะห์สัดส่วน (ภาพรวมเดือน)
+      </button>
+    </div>
+
+    <!-- ================= VIEW 1: ส่วนตารางข้อมูลและตัวกรอง ================= -->
+    <div id="view-table-section">
+      <!-- Filters Panel -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+          <h3 class="text-sm font-bold text-slate-700">🔍 ตัวกรองข้อมูล</h3>
+          <button onclick="resetFilters()" class="text-xs text-rose-600 hover:underline font-semibold">ล้างตัวกรองทั้งหมด (Reset)</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">ตั้งแต่วันที่</label>
+            <input type="date" id="filter-date-start" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">ถึงวันที่</label>
+            <input type="date" id="filter-date-end" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+          </div>
+
+          <div id="box-carrier" class="relative">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">บริษัทขนส่ง (Carrier)</label>
+            <button type="button" onclick="toggleDropdown('drop-carrier')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+              <span id="btn-label-carrier" class="truncate">เลือกขนส่ง (ทั้งหมด)</span>
+              <span class="text-xs text-slate-400">▼</span>
+            </button>
+            <div id="drop-carrier" class="dropdown-menu absolute z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
+              <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
+                <span class="font-bold text-slate-700">เลือกขนส่ง</span>
+                <div class="space-x-2">
+                  <button type="button" onclick="selectAll('carrier', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
+                  <button type="button" onclick="selectAll('carrier', false)" class="text-slate-400 hover:underline">ล้าง</button>
+                </div>
+              </div>
+              <div id="list-carrier" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <div class="relative">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">ชนิดสินค้า (Product)</label>
+            <button type="button" onclick="toggleDropdown('drop-product')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+              <span id="btn-label-product" class="truncate">เลือกสินค้า (ทั้งหมด)</span>
+              <span class="text-xs text-slate-400">▼</span>
+            </button>
+            <div id="drop-product" class="dropdown-menu absolute z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
+              <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
+                <span class="font-bold text-slate-700">เลือกสินค้า</span>
+                <div class="space-x-2">
+                  <button type="button" onclick="selectAll('product', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
+                  <button type="button" onclick="selectAll('product', false)" class="text-slate-400 hover:underline">ล้าง</button>
+                </div>
+              </div>
+              <div id="list-product" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <div class="relative">
+            <label id="lbl-partner" class="block text-xs font-semibold text-slate-500 mb-1">ปลายทาง (Destination)</label>
+            <button type="button" onclick="toggleDropdown('drop-partner')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+              <span id="btn-label-partner" class="truncate">เลือกรายการ (ทั้งหมด)</span>
+              <span class="text-xs text-slate-400">▼</span>
+            </button>
+            <div id="drop-partner" class="dropdown-menu absolute z-20 mt-1 w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
+              <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
+                <span id="drop-partner-title" class="font-bold text-slate-700">เลือกรายการ</span>
+                <div class="space-x-2">
+                  <button type="button" onclick="selectAll('partner', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
+                  <button type="button" onclick="selectAll('partner', false)" class="text-slate-400 hover:underline">ล้าง</button>
+                </div>
+              </div>
+              <div id="list-partner" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาทะเบียนรถ</label>
+            <input type="text" id="filter-plate" onkeyup="applyFilters()" placeholder="พิมพ์เลขทะเบียน..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาเลขบัตรชั่ง</label>
+            <input type="text" id="filter-ticket" onkeyup="applyFilters()" placeholder="พิมพ์เลขบัตรชั่ง..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+          </div>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">ตั้งแต่วันที่</label>
-          <input type="date" id="filter-date-start" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">ถึงวันที่</label>
-          <input type="date" id="filter-date-end" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
-        </div>
-
-        <div id="box-carrier" class="relative">
-          <label class="block text-xs font-semibold text-slate-500 mb-1">บริษัทขนส่ง (Carrier)</label>
-          <button type="button" onclick="toggleDropdown('drop-carrier')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
-            <span id="btn-label-carrier" class="truncate">เลือกขนส่ง (ทั้งหมด)</span>
-            <span class="text-xs text-slate-400">▼</span>
-          </button>
-          <div id="drop-carrier" class="dropdown-menu absolute z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
-            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
-              <span class="font-bold text-slate-700">เลือกขนส่ง</span>
-              <div class="space-x-2">
-                <button type="button" onclick="selectAll('carrier', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
-                <button type="button" onclick="selectAll('carrier', false)" class="text-slate-400 hover:underline">ล้าง</button>
-              </div>
-            </div>
-            <div id="list-carrier" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+      <!-- สรุปตัวเลขยอดกรองแบบย่อ -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">จำนวนรายการ</span>
+            <div id="stat-count" class="text-2xl font-extrabold text-slate-900 mt-0.5">0</div>
           </div>
+          <span class="text-2xl">📋</span>
         </div>
-
-        <div class="relative">
-          <label class="block text-xs font-semibold text-slate-500 mb-1">ชนิดสินค้า (Product)</label>
-          <button type="button" onclick="toggleDropdown('drop-product')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
-            <span id="btn-label-product" class="truncate">เลือกสินค้า (ทั้งหมด)</span>
-            <span class="text-xs text-slate-400">▼</span>
-          </button>
-          <div id="drop-product" class="dropdown-menu absolute z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
-            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
-              <span class="font-bold text-slate-700">เลือกสินค้า</span>
-              <div class="space-x-2">
-                <button type="button" onclick="selectAll('product', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
-                <button type="button" onclick="selectAll('product', false)" class="text-slate-400 hover:underline">ล้าง</button>
-              </div>
-            </div>
-            <div id="list-product" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">น้ำหนักสุทธิรวม (กก.)</span>
+            <div id="stat-weight" class="text-2xl font-extrabold text-indigo-600 mt-0.5">0</div>
           </div>
+          <span class="text-2xl">⚖️</span>
         </div>
-
-        <div class="relative">
-          <label id="lbl-partner" class="block text-xs font-semibold text-slate-500 mb-1">ปลายทาง (Destination)</label>
-          <button type="button" onclick="toggleDropdown('drop-partner')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
-            <span id="btn-label-partner" class="truncate">เลือกรายการ (ทั้งหมด)</span>
-            <span class="text-xs text-slate-400">▼</span>
-          </button>
-          <div id="drop-partner" class="dropdown-menu absolute z-20 mt-1 w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-3">
-            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 text-xs">
-              <span id="drop-partner-title" class="font-bold text-slate-700">เลือกรายการ</span>
-              <div class="space-x-2">
-                <button type="button" onclick="selectAll('partner', true)" class="text-indigo-600 hover:underline font-medium">เลือกทั้งหมด</button>
-                <button type="button" onclick="selectAll('partner', false)" class="text-slate-400 hover:underline">ล้าง</button>
-              </div>
-            </div>
-            <div id="list-partner" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">มูลค่ารวม (บาท)</span>
+            <div id="stat-amount" class="text-2xl font-extrabold text-emerald-600 mt-0.5">-</div>
           </div>
+          <span class="text-2xl">💰</span>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-100">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาทะเบียนรถ</label>
-          <input type="text" id="filter-plate" onkeyup="applyFilters()" placeholder="พิมพ์เลขทะเบียน..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+      <!-- Table & Action Buttons -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <h2 id="table-title" class="font-bold text-slate-800 text-lg">รายการข้อมูล</h2>
+          
+          <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+            <!-- ปุ่มสวิตช์ Toggle เลือกแสดง/ซ่อนยอดเงินใน PDF -->
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg select-none">
+              <input type="checkbox" id="toggle-show-amount" checked class="w-4 h-4 text-indigo-600 rounded focus:ring-0">
+              <span class="text-xs font-semibold text-slate-700">แสดงยอดเงินในรายงาน</span>
+            </label>
+
+            <!-- ปุ่มออกรายงาน PDF (เปิด Preview ก่อนพิมพ์) -->
+            <button onclick="previewSummaryPDF(false)" class="px-3 py-2 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold flex items-center gap-1.5 transition">
+              📋 พิมพ์สรุปยอด (Summary)
+            </button>
+            
+            <button onclick="previewSummaryPDF(true)" class="px-3 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition">
+              📑 พิมพ์สรุป + รายละเอียด
+            </button>
+
+            <button onclick="exportCSV()" class="px-3 py-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-medium">
+              📥 CSV
+            </button>
+            <button onclick="fetchData()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700">
+              รีเฟรช 🔄
+            </button>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาเลขบัตรชั่ง</label>
-          <input type="text" id="filter-ticket" onkeyup="applyFilters()" placeholder="พิมพ์เลขบัตรชั่ง..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+
+        <div class="overflow-x-auto max-h-[600px]">
+          <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead id="table-head" class="bg-slate-50 text-slate-600 font-semibold sticky top-0 shadow-sm"></thead>
+            <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+
+        <!-- Pagination 50 รายการต่อหน้า -->
+        <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <div id="page-info">กำลังโหลด...</div>
+          <div class="flex items-center gap-1">
+            <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
+              ◀ ก่อนหน้า
+            </button>
+            <span id="page-number-display" class="px-3 py-1.5 font-bold text-slate-700">1 / 1</span>
+            <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
+              ถัดไป ▶
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ส่วน Dashboard: KPIs และ Pie Chart -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 my-6 items-stretch">
-      <div class="flex flex-col gap-4">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col justify-center">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">จำนวนรายการ/เที่ยว (ที่กรอง)</span>
-          <div id="stat-count" class="text-3xl font-extrabold text-slate-900 mt-1">0</div>
+    <!-- ================= VIEW 2: ส่วนแดชบอร์ดภาพรวมรายเดือน ================= -->
+    <div id="view-dashboard-section" class="hidden mt-6 space-y-6">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">📊 สรุปสัดส่วนภาพรวมประจำเดือน</h3>
+          <p class="text-xs text-slate-500">แสดงภาพรวมข้อมูลตั้งแต่วันที่ 1 ถึงสิ้นเดือนปัจจุบันโดยอัตโนมัติ</p>
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col justify-center">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">น้ำหนักสุทธิรวม (กก.)</span>
-          <div id="stat-weight" class="text-3xl font-extrabold text-indigo-600 mt-1">0</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col justify-center">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">มูลค่ารวม (บาท)</span>
-          <div id="stat-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">-</div>
+        <div class="flex items-center gap-2">
+          <input type="month" id="dashboard-month-picker" onchange="renderMonthDashboard()" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold focus:outline-indigo-500">
+          <button onclick="renderMonthDashboard()" class="px-3 py-2 text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-bold">อัปเดต 🔄</button>
         </div>
       </div>
 
-      <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-6">
-        <div class="w-full sm:w-1/2 h-56 flex items-center justify-center relative">
+      <!-- สรุปตัวเลขรายเดือน -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">จำนวนรายการทั้งหมดในเดือน</span>
+          <div id="dash-month-count" class="text-3xl font-extrabold text-slate-900 mt-1">0</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">น้ำหนักรวมทั้งเดือน (กก.)</span>
+          <div id="dash-month-weight" class="text-3xl font-extrabold text-indigo-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">มูลค่ารวมทั้งเดือน (บาท)</span>
+          <div id="dash-month-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">-</div>
+        </div>
+      </div>
+
+      <!-- กราฟวงกลม Pie Chart -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-8">
+        <div class="w-full lg:w-1/2 h-72 flex items-center justify-center relative">
           <canvas id="productPieChart"></canvas>
         </div>
-        <div class="w-full sm:w-1/2 flex flex-col justify-center">
-          <h4 class="text-sm font-bold text-slate-800 mb-2">📊 สัดส่วนตามชนิดกระดาษ/สินค้า</h4>
-          <p class="text-xs text-slate-500 mb-3">คำนวณตามช่วงวันที่และตัวกรองที่เลือก</p>
-          <div id="chart-legend-list" class="space-y-1.5 text-xs max-h-40 overflow-y-auto"></div>
+        <div class="w-full lg:w-1/2 flex flex-col justify-center">
+          <h4 class="text-sm font-bold text-slate-800 mb-2">สัดส่วนตามประเภทสินค้า / กระดาษ</h4>
+          <p class="text-xs text-slate-500 mb-4">แจกแจงตามน้ำหนักสุทธิและสัดส่วนร้อยละ</p>
+          <div id="chart-legend-list" class="space-y-2 text-xs max-h-60 overflow-y-auto pr-2"></div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Table & Action Buttons -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-        <h2 id="table-title" class="font-bold text-slate-800 text-lg">รายการข้อมูล</h2>
-        
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="printSummaryPDF(false)" class="px-3.5 py-2 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold flex items-center gap-1.5 transition">
-            📋 พิมพ์สรุปยอด (Summary Only)
+  <!-- ================= หน้าต่างแสดงตัวอย่างก่อนพิมพ์ (Print Preview Modal) ================= -->
+  <div id="preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">👁️</span>
+          <h3 class="text-sm font-bold text-slate-800">ตัวอย่างเอกสารก่อนพิมพ์ (Print Preview)</h3>
+          <span class="text-xs text-slate-400 ml-2">สามารถกด Ctrl+P หรือคลิกปุ่มพิมพ์ด้านขวา</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="executePrint()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1.5 shadow transition">
+            🖨️ สั่งพิมพ์ / บันทึก PDF (Print)
           </button>
-          
-          <button onclick="printSummaryPDF(true)" class="px-3.5 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition">
-            📑 พิมพ์สรุป + รายละเอียด (Summary & Detail)
-          </button>
-
-          <button onclick="exportCSV()" class="px-3 py-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-medium">
-            📥 ดาวน์โหลด CSV
-          </button>
-          <button onclick="fetchData()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700">
-            รีเฟรช 🔄
+          <button onclick="closePreviewModal()" class="px-3 py-2 text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition">
+            ✕ ปิด
           </button>
         </div>
       </div>
 
-      <div class="overflow-x-auto max-h-[600px]">
-        <table class="w-full text-left text-sm whitespace-nowrap">
-          <thead id="table-head" class="bg-slate-50 text-slate-600 font-semibold sticky top-0 shadow-sm"></thead>
-          <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
-        </table>
-      </div>
-
-      <!-- ส่วนควบคุมแบ่งหน้า (Pagination 50 แถวต่อหน้า) -->
-      <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-        <div id="page-info">กำลังโหลด...</div>
-        <div class="flex items-center gap-1">
-          <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
-            ◀ ก่อนหน้า
-          </button>
-          <span id="page-number-display" class="px-3 py-1.5 font-bold text-slate-700">1 / 1</span>
-          <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
-            ถัดไป ▶
-          </button>
-        </div>
+      <!-- Modal Body (Preview Iframe) -->
+      <div class="flex-1 bg-slate-200 p-2 sm:p-4 overflow-hidden">
+        <iframe id="preview-iframe" class="w-full h-full bg-white rounded-lg shadow border border-slate-300"></iframe>
       </div>
     </div>
   </div>
@@ -239,12 +325,12 @@
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentTab = 'outbound';
+    let currentView = 'table';
     let rawDataset = [];
     let filteredDataset = [];
 
-    // ตัวแปร Pagination
     let currentPage = 1;
-    const PAGE_SIZE = 50; // หน้าละ 50 แถว
+    const PAGE_SIZE = 50;
 
     let masterCarriers = [];
     let masterProducts = [];
@@ -255,8 +341,9 @@
     let selectedPartners = new Set();
 
     let pieChartInstance = null;
+    let currentGeneratedPrintHtml = '';
 
-    // ================= ระบบตรวจสอบและจัดการ Authentication =================
+    // ================= ระบบ Authentication =================
     async function checkAuthSession() {
       const { data: { session } } = await client.auth.getSession();
       if (session) {
@@ -275,6 +362,11 @@
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('main-content').classList.remove('hidden');
       document.getElementById('user-display').innerText = user.email || 'ผู้ใช้งาน';
+      
+      const now = new Date();
+      const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      document.getElementById('dashboard-month-picker').value = currentYearMonth;
+      
       setDefaultDateFilter();
       fetchData();
     }
@@ -290,10 +382,7 @@
       submitBtn.disabled = true;
       submitBtn.innerText = 'กำลังเข้าสู่ระบบ...';
 
-      const { data, error } = await client.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
 
       if (error) {
         errorBox.innerText = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง: ' + error.message;
@@ -314,21 +403,24 @@
       }
     }
 
-    // ================= ฟังก์ชันจัดการ UI และตัวกรอง =================
-    function toggleDropdown(id) {
-      const el = document.getElementById(id);
-      const isOpen = el.classList.contains('active');
-      document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
-      if (!isOpen) el.classList.add('active');
+    // ================= ฟังก์ชันสลับแท็บ =================
+    function switchViewTab(view) {
+      currentView = view;
+      if (view === 'table') {
+        document.getElementById('view-table-section').classList.remove('hidden');
+        document.getElementById('view-dashboard-section').classList.add('hidden');
+        document.getElementById('tab-btn-table').className = 'pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition flex items-center gap-2';
+        document.getElementById('tab-btn-dashboard').className = 'pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2';
+      } else {
+        document.getElementById('view-table-section').classList.add('hidden');
+        document.getElementById('view-dashboard-section').classList.remove('hidden');
+        document.getElementById('tab-btn-dashboard').className = 'pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition flex items-center gap-2';
+        document.getElementById('tab-btn-table').className = 'pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2';
+        renderMonthDashboard();
+      }
     }
 
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.relative')) {
-        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
-      }
-    });
-
-    function switchTab(tab) {
+    function switchDataTab(tab) {
       currentTab = tab;
       document.getElementById('btn-outbound').className = tab === 'outbound' 
         ? 'px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm'
@@ -346,26 +438,37 @@
       fetchData();
     }
 
-    // ฟังก์ชันแปลงวันที่แบบครอบคลุม: รองรับ DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD และ พ.ศ.
+    function toggleDropdown(id) {
+      const el = document.getElementById(id);
+      const isOpen = el.classList.contains('active');
+      document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
+      if (!isOpen) el.classList.add('active');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
+      }
+    });
+
+    // ================= ระบบแปลงวันที่ (รองรับทุกฟอร์แมต) =================
     function parseDate(dateStr) {
       if (!dateStr) return null;
-      const clean = String(dateStr).trim().split(' ')[0]; // ตัดเวลาทิ้ง
+      const clean = String(dateStr).trim().split(' ')[0];
       const separator = clean.includes('/') ? '/' : '-';
       const parts = clean.split(separator);
 
       if (parts.length === 3) {
         let day, month, year;
         if (parts[0].length === 4) {
-          // รูปแบบ YYYY-MM-DD
           year = parseInt(parts[0], 10);
           month = parseInt(parts[1], 10) - 1;
           day = parseInt(parts[2], 10);
         } else {
-          // รูปแบบ DD-MM-YYYY หรือ DD/MM/YYYY
           day = parseInt(parts[0], 10);
           month = parseInt(parts[1], 10) - 1;
           year = parseInt(parts[2], 10);
-          if (year > 2500) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+          if (year > 2500) year -= 543;
           else if (year < 100) year += 2000;
         }
 
@@ -375,7 +478,6 @@
       return null;
     }
 
-    // วันที่ 1 ถึง สิ้นเดือนปัจจุบัน
     function setDefaultDateFilter() {
       const now = new Date();
       const year = now.getFullYear();
@@ -389,6 +491,7 @@
       document.getElementById('filter-date-end').value = lastDay;
     }
 
+    // ================= ดึงข้อมูลจาก Supabase =================
     async function fetchData() {
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">กำลังดึงข้อมูล...</td></tr>';
@@ -405,6 +508,9 @@
       populateMultiSelects();
       currentPage = 1;
       applyFilters();
+      if (currentView === 'dashboard') {
+        renderMonthDashboard();
+      }
     }
 
     function populateMultiSelects() {
@@ -461,9 +567,7 @@
       else if (type === 'partner') { masterList = masterPartners; targetSet = selectedPartners; listId = 'list-partner'; }
 
       targetSet.clear();
-      if (isSelectAll) {
-        masterList.forEach(item => targetSet.add(item));
-      }
+      if (isSelectAll) masterList.forEach(item => targetSet.add(item));
 
       renderCheckboxes(listId, masterList, targetSet, type);
       updateButtonLabels();
@@ -482,14 +586,13 @@
       document.getElementById('btn-label-partner').innerText = ptSize === 0 ? 'เลือกรายการ (ทั้งหมด)' : (ptSize === masterPartners.length ? 'รายการ (ทั้งหมด)' : `เลือกรายการ (${ptSize})`);
     }
 
-    // ฟังก์ชันกรองข้อมูลที่แก้จุดบั๊กวันที่แล้ว
+    // ================= กรองข้อมูล =================
     function applyFilters() {
       const startVal = document.getElementById('filter-date-start').value;
       const endVal = document.getElementById('filter-date-end').value;
       const plateSearch = document.getElementById('filter-plate').value.toLowerCase().trim();
       const ticketSearch = document.getElementById('filter-ticket').value.toLowerCase().trim();
 
-      // สร้าง Date Object แบบตั้งชั่วโมงให้แม่นยำ
       let startDate = null;
       let endDate = null;
 
@@ -504,7 +607,6 @@
       }
 
       filteredDataset = rawDataset.filter(r => {
-        // กรองวันที่
         if (startDate || endDate) {
           const rowDate = parseDate(r.tx_date);
           if (rowDate) {
@@ -536,7 +638,6 @@
       });
 
       renderTable();
-      updatePieChart();
     }
 
     function resetFilters() {
@@ -552,7 +653,6 @@
       applyFilters();
     }
 
-    // ฟังก์ชันเลื่อนหน้า
     function changePage(delta) {
       const maxPage = Math.ceil(filteredDataset.length / PAGE_SIZE) || 1;
       currentPage += delta;
@@ -561,7 +661,6 @@
       renderTable();
     }
 
-    // แสดงตารางแบบแบ่งหน้า 50 รายการ
     function renderTable() {
       const thead = document.getElementById('table-head');
       const tbody = document.getElementById('table-body');
@@ -569,13 +668,11 @@
       let totalWeight = 0;
       let totalAmount = 0;
 
-      // รวมยอดทั้งหมดของชุดที่ผ่านการกรอง (ไม่ใช่แค่ 50 แถว)
       filteredDataset.forEach(r => {
         totalWeight += Number(r.net_weight || 0);
         totalAmount += Number(r.total_amount || 0);
       });
 
-      // ตัดแสดงผลเฉพาะหน้าที่เลือก (Pagination)
       const totalCount = filteredDataset.length;
       const maxPage = Math.ceil(totalCount / PAGE_SIZE) || 1;
       if (currentPage > maxPage) currentPage = maxPage;
@@ -584,7 +681,6 @@
       const endIndex = Math.min(startIndex + PAGE_SIZE, totalCount);
       const pageData = filteredDataset.slice(startIndex, endIndex);
 
-      // อัปเดตข้อความ Pagination Controller
       document.getElementById('page-info').innerText = totalCount > 0 
         ? `แสดงรายการที่ ${(startIndex + 1).toLocaleString()} - ${endIndex.toLocaleString()} จากทั้งหมด ${totalCount.toLocaleString()} รายการ`
         : 'ไม่มีรายการข้อมูล';
@@ -658,16 +754,39 @@
       }
     }
 
-    function updatePieChart() {
-      const productWeights = {};
-      let totalFilteredWeight = 0;
+    // ================= แดชบอร์ดภาพรวมประจำเดือน =================
+    function renderMonthDashboard() {
+      const monthPickerVal = document.getElementById('dashboard-month-picker').value;
+      if (!monthPickerVal) return;
 
-      filteredDataset.forEach(r => {
-        const prod = (r.product || 'ไม่ระบุ').trim();
-        const weight = Number(r.net_weight || 0);
-        productWeights[prod] = (productWeights[prod] || 0) + weight;
-        totalFilteredWeight += weight;
+      const [y, m] = monthPickerVal.split('-').map(Number);
+      const startOfMonth = new Date(y, m - 1, 1, 0, 0, 0);
+      const endOfMonth = new Date(y, m, 0, 23, 59, 59);
+
+      const monthData = rawDataset.filter(r => {
+        const d = parseDate(r.tx_date);
+        return d && d >= startOfMonth && d <= endOfMonth;
       });
+
+      let totalWeight = 0;
+      let totalAmount = 0;
+      const productWeights = {};
+
+      monthData.forEach(r => {
+        const weight = Number(r.net_weight || 0);
+        const amount = Number(r.total_amount || 0);
+        const prod = (r.product || 'ไม่ระบุ').trim();
+
+        totalWeight += weight;
+        totalAmount += amount;
+        productWeights[prod] = (productWeights[prod] || 0) + weight;
+      });
+
+      document.getElementById('dash-month-count').innerText = monthData.length.toLocaleString();
+      document.getElementById('dash-month-weight').innerText = totalWeight.toLocaleString();
+      document.getElementById('dash-month-amount').innerText = currentTab === 'inbound' 
+        ? totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) 
+        : '-';
 
       const labels = Object.keys(productWeights);
       const dataValues = Object.values(productWeights);
@@ -676,26 +795,24 @@
       const legendContainer = document.getElementById('chart-legend-list');
       legendContainer.innerHTML = labels.map((label, idx) => {
         const val = productWeights[label];
-        const pct = totalFilteredWeight > 0 ? ((val / totalFilteredWeight) * 100).toFixed(1) : 0;
+        const pct = totalWeight > 0 ? ((val / totalWeight) * 100).toFixed(1) : 0;
         const color = bgColors[idx % bgColors.length];
         return `
-          <div class="flex items-center justify-between py-1 border-b border-slate-50">
+          <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${color}"></span>
+              <span class="w-3 h-3 rounded-full" style="background-color: ${color}"></span>
               <span class="font-medium text-slate-700">${label}</span>
             </div>
             <div class="text-right">
               <span class="font-bold text-slate-900">${val.toLocaleString()} กก.</span>
-              <span class="text-slate-400 ml-1">(${pct}%)</span>
+              <span class="text-slate-400 ml-1.5 font-mono">(${pct}%)</span>
             </div>
           </div>
         `;
       }).join('');
 
       const ctx = document.getElementById('productPieChart').getContext('2d');
-      if (pieChartInstance) {
-        pieChartInstance.destroy();
-      }
+      if (pieChartInstance) pieChartInstance.destroy();
 
       pieChartInstance = new Chart(ctx, {
         type: 'doughnut',
@@ -711,24 +828,25 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          cutout: '65%'
+          plugins: { legend: { display: false } },
+          cutout: '62%'
         }
       });
     }
 
-    function printSummaryPDF(includeDetails) {
+    // ================= ระบบสร้างเอกสารรายงาน PDF พร้อม Preview Modal =================
+    function previewSummaryPDF(includeDetails) {
       if (filteredDataset.length === 0) {
         alert('ไม่มีข้อมูลที่กรองอยู่ ไม่สามารถพิมพ์รายงานได้');
         return;
       }
 
+      const showAmount = document.getElementById('toggle-show-amount').checked && (currentTab === 'inbound');
       const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       const filterStart = document.getElementById('filter-date-start').value || 'ทั้งหมด';
       const filterEnd = document.getElementById('filter-date-end').value || 'ทั้งหมด';
 
+      // รวมยอด Grouped ตามปลายทาง/ผู้ขาย และ สินค้า
       const groupMap = {};
       let totalAllWeight = 0;
       let totalAllAmount = 0;
@@ -755,14 +873,14 @@
         totalAllAmount += Number(r.total_amount || 0);
       });
 
-      let summaryRowsHtml = Object.values(groupMap).map((g, idx) => `
+      const summaryRowsHtml = Object.values(groupMap).map((g, idx) => `
         <tr>
           <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
           <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; font-weight: bold;">${g.partner}</td>
           <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: center;">${g.product}</td>
           <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right;">${g.tripCount} เที่ยว</td>
           <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold;">${g.totalWeight.toLocaleString()}</td>
-          ${currentTab === 'inbound' ? `<td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold; color: #047857;">${g.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
+          ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold; color: #047857;">${g.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
         </tr>
       `).join('');
 
@@ -789,7 +907,7 @@
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ทะเบียน</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">สินค้า</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">นน.สุทธิ</th>
-            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">ยอดรวม (บาท)</th>
+            ${showAmount ? `<th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">ยอดรวม (บาท)</th>` : ''}
           </tr>
         `;
 
@@ -818,7 +936,7 @@
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.plate_no || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.product || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right;">${Number(r.net_weight || 0).toLocaleString()}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; color: #047857;">${Number(r.total_amount || 0).toLocaleString()}</td>
+                ${showAmount ? `<td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; color: #047857;">${Number(r.total_amount || 0).toLocaleString()}</td>` : ''}
               </tr>
             `;
           }
@@ -826,7 +944,7 @@
 
         detailSectionHtml = `
           <div style="margin-top: 25px;">
-            <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #334155;">📋 รายละเอียดบัตรชั่งทุกรายการ:</div>
+            <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #334155;">📋 รายละเอียดบัตรชั่งทุกรายการ (Ticket Detail Breakdown):</div>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>${detailHeaders}</thead>
               <tbody>${detailRows}</tbody>
@@ -837,14 +955,14 @@
 
       const reportTypeTitle = includeDetails ? 'รายงานสรุปยอดพร้อมรายละเอียด' : 'ใบสรุปยอดรวม (Summary Only)';
 
-      const printHtml = `
+      currentGeneratedPrintHtml = `
         <!DOCTYPE html>
         <html>
         <head>
           <title>${reportTypeTitle}</title>
           <meta charset="UTF-8">
           <style>
-            body { font-family: 'Sarabun', -apple-system, sans-serif; color: #0f172a; padding: 20px; margin: 0; }
+            body { font-family: 'Sarabun', -apple-system, sans-serif; color: #0f172a; padding: 20px; margin: 0; background: white; }
             table { width: 100%; border-collapse: collapse; margin-top: 8px; }
             @page { size: A4 landscape; margin: 10mm; }
           </style>
@@ -861,9 +979,10 @@
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; font-size: 11px;">
-            <strong>ช่วงวันที่ข้อมูล:</strong> ${filterStart} ถึง ${filterEnd} | <strong>ประเภท:</strong> ${currentTab === 'outbound' ? 'ส่งออก (Outbound)' : 'รับซื้อ (Inbound)'}
+            <strong>ช่วงวันที่ข้อมูลที่เลือก:</strong> ${filterStart} ถึง ${filterEnd} | <strong>ประเภท:</strong> ${currentTab === 'outbound' ? 'ส่งออก (Outbound)' : 'รับซื้อ (Inbound)'}
           </div>
 
+          <!-- ตารางสรุปภาพรวม -->
           <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #1e293b;">📊 ตารางสรุปยอดแยกตามกลุ่ม:</div>
           <table>
             <thead>
@@ -873,7 +992,7 @@
                 <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ชนิดสินค้า</th>
                 <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">จำนวนเที่ยว</th>
                 <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">น้ำหนักสุทธิรวม (กก.)</th>
-                ${currentTab === 'inbound' ? '<th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">มูลค่ารวม (บาท)</th>' : ''}
+                ${showAmount ? '<th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">มูลค่ารวม (บาท)</th>' : ''}
               </tr>
             </thead>
             <tbody>
@@ -882,13 +1001,15 @@
                 <td colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">ยอดรวมทั้งสิ้น:</td>
                 <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${filteredDataset.length.toLocaleString()} เที่ยว</td>
                 <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #4338ca;">${totalAllWeight.toLocaleString()}</td>
-                ${currentTab === 'inbound' ? `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #047857;">${totalAllAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
+                ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #047857;">${totalAllAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
               </tr>
             </tbody>
           </table>
 
+          <!-- ตารางรายละเอียดแทรก -->
           ${detailSectionHtml}
 
+          <!-- ส่วนลงนาม -->
           <div style="display: flex; justify-content: space-between; margin-top: 35px; font-size: 11px; page-break-inside: avoid;">
             <div style="text-align: center; width: 28%;">
               <div style="border-bottom: 1px dashed #94a3b8; height: 35px;"></div>
@@ -910,16 +1031,35 @@
         </html>
       `;
 
-      const printWindow = window.open('', '_blank');
-      printWindow.document.open();
-      printWindow.document.write(printHtml);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 350);
+      // แสดงบน Iframe ของ Preview Modal
+      const iframe = document.getElementById('preview-iframe');
+      iframe.contentWindow.document.open();
+      iframe.contentWindow.document.write(currentGeneratedPrintHtml);
+      iframe.contentWindow.document.close();
+
+      document.getElementById('preview-modal').classList.remove('hidden');
     }
+
+    function closePreviewModal() {
+      document.getElementById('preview-modal').classList.add('hidden');
+    }
+
+    function executePrint() {
+      const iframe = document.getElementById('preview-iframe');
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }
+
+    // รองรับกดปุ่มคีย์ลัด Ctrl + P ขณะเปิดดูพรีวิว
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        const modal = document.getElementById('preview-modal');
+        if (!modal.classList.contains('hidden')) {
+          e.preventDefault();
+          executePrint();
+        }
+      }
+    });
 
     function exportCSV() {
       if (filteredDataset.length === 0) { alert('ไม่มีข้อมูลสำหรับดาวน์โหลด'); return; }
