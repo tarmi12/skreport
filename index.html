@@ -10,6 +10,17 @@
   <style>
     .dropdown-menu { display: none; }
     .dropdown-menu.active { display: block; }
+
+    /* ปรับแต่งตารางให้กางเต็มจออัตโนมัติและตัดคำเมื่อพื้นที่ไม่พอ */
+    .table-fit {
+      width: 100% !important;
+      table-layout: auto;
+    }
+    .table-fit th, .table-fit td {
+      padding: 8px 6px !important;
+      white-space: normal !important;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
@@ -44,19 +55,19 @@
     </div>
   </div>
 
-  <!-- ================= แอพหลัก ================= -->
-  <div id="main-content" class="hidden max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-    <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
+  <!-- ================= แอพหลัก (ขยาย w-full และ max-w-[99vw] ให้เต็มจอ) ================= -->
+  <div id="main-content" class="hidden w-full max-w-[99vw] mx-auto p-2 sm:p-4">
+    <header class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 gap-4 bg-white p-4 rounded-2xl shadow-sm">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">📊 ระบบรายงานขนส่งและรับซื้อ</h1>
-        <p class="text-sm text-slate-500">ระบบคัดกรองข้อมูล, วิเคราะห์แดชบอร์ดสัดส่วน และออกรายงานสรุป PDF</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">📊 ระบบรายงานขนส่งและรับซื้อ</h1>
+        <p class="text-xs sm:text-sm text-slate-500">ระบบคัดกรองข้อมูล, วิเคราะห์แดชบอร์ดสัดส่วน และออกรายงานสรุป PDF</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex gap-2 bg-slate-200 p-1.5 rounded-xl">
-          <button id="btn-outbound" onclick="switchDataTab('outbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm">
+          <button id="btn-outbound" onclick="switchDataTab('outbound')" class="px-4 py-1.5 rounded-lg font-semibold text-xs sm:text-sm transition bg-white text-indigo-600 shadow-sm">
             🚚 ส่งออก (Outbound)
           </button>
-          <button id="btn-inbound" onclick="switchDataTab('inbound')" class="px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900">
+          <button id="btn-inbound" onclick="switchDataTab('inbound')" class="px-4 py-1.5 rounded-lg font-semibold text-xs sm:text-sm transition text-slate-600 hover:text-slate-900">
             📥 รับเข้า (Inbound)
           </button>
         </div>
@@ -70,7 +81,7 @@
     </header>
 
     <!-- สลับมุมมอง -->
-    <div class="flex border-b border-slate-200 mt-6 gap-4">
+    <div class="flex border-b border-slate-200 mt-4 gap-4">
       <button id="tab-btn-table" onclick="switchViewTab('table')" class="pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition flex items-center gap-2">
         📑 ตารางข้อมูลและรายงาน
       </button>
@@ -82,28 +93,28 @@
     <!-- VIEW 1: ตารางและตัวกรอง -->
     <div id="view-table-section">
       <!-- กล่องตัวกรองข้อมูล -->
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-6">
-        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mt-4">
+        <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+          <h3 class="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-2">
             🔍 กำหนดเงื่อนไขตัวกรองข้อมูล
           </h3>
           <button onclick="resetFilters()" class="text-xs text-rose-600 hover:underline font-semibold">ล้างตัวกรองทั้งหมด (Reset)</button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ตั้งแต่วันที่</label>
-            <input type="date" id="filter-date-start" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="date" id="filter-date-start" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-indigo-500">
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ถึงวันที่</label>
-            <input type="date" id="filter-date-end" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="date" id="filter-date-end" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-indigo-500">
           </div>
 
           <div id="box-carrier" class="relative">
             <label class="block text-xs font-semibold text-slate-500 mb-1">บริษัทขนส่ง (Carrier)</label>
-            <button type="button" onclick="toggleDropdown('drop-carrier')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+            <button type="button" onclick="toggleDropdown('drop-carrier')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-left flex justify-between items-center">
               <span id="btn-label-carrier" class="truncate">เลือกขนส่ง (ทั้งหมด)</span>
               <span class="text-xs text-slate-400">▼</span>
             </button>
@@ -115,13 +126,13 @@
                   <button type="button" onclick="selectAll('carrier', false)" class="text-slate-400 hover:underline">ล้าง</button>
                 </div>
               </div>
-              <div id="list-carrier" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+              <div id="list-carrier" class="space-y-1.5 text-xs max-h-48 overflow-y-auto"></div>
             </div>
           </div>
 
           <div class="relative">
             <label class="block text-xs font-semibold text-slate-500 mb-1">ชนิดสินค้า (Product)</label>
-            <button type="button" onclick="toggleDropdown('drop-product')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+            <button type="button" onclick="toggleDropdown('drop-product')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-left flex justify-between items-center">
               <span id="btn-label-product" class="truncate">เลือกสินค้า (ทั้งหมด)</span>
               <span class="text-xs text-slate-400">▼</span>
             </button>
@@ -133,13 +144,13 @@
                   <button type="button" onclick="selectAll('product', false)" class="text-slate-400 hover:underline">ล้าง</button>
                 </div>
               </div>
-              <div id="list-product" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+              <div id="list-product" class="space-y-1.5 text-xs max-h-48 overflow-y-auto"></div>
             </div>
           </div>
 
           <div class="relative">
             <label id="lbl-partner" class="block text-xs font-semibold text-slate-500 mb-1">ปลายทาง (Destination)</label>
-            <button type="button" onclick="toggleDropdown('drop-partner')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm text-left flex justify-between items-center">
+            <button type="button" onclick="toggleDropdown('drop-partner')" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-left flex justify-between items-center">
               <span id="btn-label-partner" class="truncate">เลือกรายการ (ทั้งหมด)</span>
               <span class="text-xs text-slate-400">▼</span>
             </button>
@@ -151,32 +162,32 @@
                   <button type="button" onclick="selectAll('partner', false)" class="text-slate-400 hover:underline">ล้าง</button>
                 </div>
               </div>
-              <div id="list-partner" class="space-y-1.5 text-sm max-h-48 overflow-y-auto"></div>
+              <div id="list-partner" class="space-y-1.5 text-xs max-h-48 overflow-y-auto"></div>
             </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-100">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาทะเบียนรถ</label>
-            <input type="text" id="filter-plate" onkeypress="handleEnterFilter(event)" placeholder="พิมพ์เลขทะเบียนแล้วกดปุ่มค้นหา..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="text" id="filter-plate" onkeypress="handleEnterFilter(event)" placeholder="พิมพ์เลขทะเบียนแล้วกดปุ่มค้นหา..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-indigo-500">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">ค้นหาเลขบัตรชั่ง</label>
-            <input type="text" id="filter-ticket" onkeypress="handleEnterFilter(event)" placeholder="พิมพ์เลขบัตรชั่งแล้วกดปุ่มค้นหา..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:outline-indigo-500">
+            <input type="text" id="filter-ticket" onkeypress="handleEnterFilter(event)" placeholder="พิมพ์เลขบัตรชั่งแล้วกดปุ่มค้นหา..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-indigo-500">
           </div>
         </div>
 
         <!-- ปุ่มกดเพื่อเริ่มการกรองข้อมูล -->
-        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-          <button onclick="applyFiltersManual()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2">
+        <div class="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+          <button onclick="applyFiltersManual()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2">
             🔍 ค้นหา / กรองข้อมูล
           </button>
         </div>
       </div>
 
       <!-- แถบแสดงช่วงวันที่ที่กำลังกรอง และ KPI Cards -->
-      <div class="my-6">
+      <div class="my-4">
         <div class="bg-indigo-50/70 border border-indigo-200/60 rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between text-xs text-indigo-900 font-semibold">
           <div class="flex items-center gap-2">
             <span class="text-base">📅</span>
@@ -185,7 +196,7 @@
           <span class="text-indigo-400 text-[11px] hidden sm:inline">(คำนวณตามผลการกรองล่าสุด)</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <span class="text-xs font-semibold text-slate-400 uppercase">จำนวนรายการ</span>
@@ -202,6 +213,13 @@
           </div>
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
+              <span id="stat-billed-weight-label" class="text-xs font-semibold text-slate-400 uppercase">น้ำหนักคิดเงินรวม (กก.)</span>
+              <div id="stat-billed-weight" class="text-2xl font-extrabold text-blue-600 mt-0.5">0</div>
+            </div>
+            <span class="text-2xl">🏷️</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
               <span class="text-xs font-semibold text-slate-400 uppercase">มูลค่ารวม (บาท)</span>
               <div id="stat-amount" class="text-2xl font-extrabold text-emerald-600 mt-0.5">-</div>
             </div>
@@ -212,35 +230,36 @@
 
       <!-- Table Section -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <h2 id="table-title" class="font-bold text-slate-800 text-lg">รายการข้อมูล</h2>
+        <div class="p-3 sm:p-4 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+          <h2 id="table-title" class="font-bold text-slate-800 text-sm sm:text-base">รายการข้อมูล</h2>
           
-          <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg select-none">
+          <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg select-none">
               <input type="checkbox" id="toggle-show-amount" checked class="w-4 h-4 text-indigo-600 rounded focus:ring-0">
               <span class="text-xs font-semibold text-slate-700">แสดงยอดเงินในรายงาน</span>
             </label>
 
-            <button onclick="previewSummaryPDF(false)" class="px-3 py-2 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold flex items-center gap-1.5 transition">
+            <button onclick="previewSummaryPDF(false)" class="px-3 py-1.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold flex items-center gap-1 transition">
               📋 พิมพ์สรุปยอด (Summary)
             </button>
             
-            <button onclick="previewSummaryPDF(true)" class="px-3 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition">
+            <button onclick="previewSummaryPDF(true)" class="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center gap-1 shadow-sm transition">
               📑 พิมพ์สรุป + รายละเอียด
             </button>
 
-            <button onclick="exportCSV()" class="px-3 py-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-medium">
+            <button onclick="exportCSV()" class="px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-medium">
               📥 CSV
             </button>
-            <button onclick="fetchData()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700">
+            <button onclick="fetchData()" class="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700">
               รีเฟรช 🔄
             </button>
           </div>
         </div>
 
-        <div class="overflow-x-auto max-h-[600px]">
-          <table class="w-full text-left text-sm whitespace-nowrap">
-            <thead id="table-head" class="bg-slate-50 text-slate-600 font-semibold sticky top-0 shadow-sm"></thead>
+        <!-- เอา whitespace-nowrap ออก พร้อมใส่คลาส .table-fit ที่จัดคอลัมน์พอดีจอโดยไม่ต้องเลื่อน -->
+        <div class="w-full overflow-x-hidden">
+          <table class="table-fit text-left text-xs">
+            <thead id="table-head" class="bg-slate-50 text-slate-600 font-semibold sticky top-0 shadow-sm border-b border-slate-200"></thead>
             <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
           </table>
         </div>
@@ -248,11 +267,11 @@
         <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
           <div id="page-info">กำลังโหลด...</div>
           <div class="flex items-center gap-1">
-            <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
+            <button id="btn-prev-page" onclick="changePage(-1)" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
               ◀ ก่อนหน้า
             </button>
-            <span id="page-number-display" class="px-3 py-1.5 font-bold text-slate-700">1 / 1</span>
-            <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
+            <span id="page-number-display" class="px-2 font-bold text-slate-700">1 / 1</span>
+            <button id="btn-next-page" onclick="changePage(1)" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium">
               ถัดไป ▶
             </button>
           </div>
@@ -261,10 +280,10 @@
     </div>
 
     <!-- VIEW 2: แดชบอร์ดภาพรวมเดือน -->
-    <div id="view-dashboard-section" class="hidden mt-6 space-y-6">
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div id="view-dashboard-section" class="hidden mt-4 space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h3 class="text-base font-bold text-slate-900">📊 สรุปสัดส่วนภาพรวมประจำเดือน</h3>
+          <h3 class="text-sm sm:text-base font-bold text-slate-900">📊 สรุปสัดส่วนภาพรวมประจำเดือน</h3>
           <p class="text-xs text-slate-500">แสดงภาพรวมข้อมูลตั้งแต่วันที่ 1 ถึงสิ้นเดือนปัจจุบันโดยอัตโนมัติ</p>
         </div>
         <div class="flex items-center gap-2">
@@ -273,38 +292,42 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">จำนวนรายการทั้งหมดในเดือน</span>
-          <div id="dash-month-count" class="text-3xl font-extrabold text-slate-900 mt-1">0</div>
+          <div id="dash-month-count" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">น้ำหนักสุทธิทั้งเดือน (กก.)</span>
+          <div id="dash-month-weight" class="text-2xl sm:text-3xl font-extrabold text-indigo-600 mt-1">0</div>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">น้ำหนักรวมทั้งเดือน (กก.)</span>
-          <div id="dash-month-weight" class="text-3xl font-extrabold text-indigo-600 mt-1">0</div>
+          <span id="dash-month-billed-weight-label" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">น้ำหนักคิดเงินทั้งเดือน (กก.)</span>
+          <div id="dash-month-billed-weight" class="text-2xl sm:text-3xl font-extrabold text-blue-600 mt-1">0</div>
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">มูลค่ารวมทั้งเดือน (บาท)</span>
-          <div id="dash-month-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">-</div>
+          <div id="dash-month-amount" class="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">-</div>
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-8">
-        <div class="w-full lg:w-1/2 h-72 flex items-center justify-center relative">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-6">
+        <div class="w-full lg:w-1/2 h-64 flex items-center justify-center relative">
           <canvas id="productPieChart"></canvas>
         </div>
         <div class="w-full lg:w-1/2 flex flex-col justify-center">
           <h4 class="text-sm font-bold text-slate-800 mb-2">สัดส่วนตามประเภทสินค้า / กระดาษ</h4>
-          <p class="text-xs text-slate-500 mb-4">แจกแจงตามน้ำหนักสุทธิและสัดส่วนร้อยละ</p>
-          <div id="chart-legend-list" class="space-y-2 text-xs max-h-60 overflow-y-auto pr-2"></div>
+          <p class="text-xs text-slate-500 mb-3">แจกแจงตามน้ำหนักคิดเงินและสัดส่วนร้อยละ</p>
+          <div id="chart-legend-list" class="space-y-1.5 text-xs max-h-56 overflow-y-auto pr-2"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ================= หน้าต่างแสดงตัวอย่างก่อนพิมพ์ (Modal กว้างเต็มตา 96vw / 96vh) ================= -->
+  <!-- ================= หน้าต่างแสดงตัวอย่างก่อนพิมพ์ (Modal) ================= -->
   <div id="preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-2 sm:p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-[96vw] h-[96vh] flex flex-col overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+      <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
           <span class="text-xl">👁️</span>
           <div>
@@ -312,11 +335,11 @@
             <span class="text-[11px] text-slate-400">ตรวจสอบความถูกต้องก่อนสั่งพิมพ์ หรือใช้คีย์ลัด Ctrl + P</span>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <button onclick="executePrint()" class="px-5 py-2.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition">
+        <div class="flex items-center gap-2">
+          <button onclick="executePrint()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition">
             🖨️ สั่งพิมพ์ / บันทึก PDF (Print)
           </button>
-          <button onclick="closePreviewModal()" class="px-4 py-2.5 text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition">
+          <button onclick="closePreviewModal()" class="px-3 py-2 text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition">
             ✕ ปิดหน้าต่าง
           </button>
         </div>
@@ -351,6 +374,7 @@
 
     let pieChartInstance = null;
     let currentGeneratedPrintHtml = '';
+    let currentLoggedUserEmail = '';
 
     async function checkAuthSession() {
       const { data: { session } } = await client.auth.getSession();
@@ -369,7 +393,8 @@
     function showApp(user) {
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('main-content').classList.remove('hidden');
-      document.getElementById('user-display').innerText = user.email || 'ผู้ใช้งาน';
+      currentLoggedUserEmail = user.email || 'ผู้ใช้งานระบบ';
+      document.getElementById('user-display').innerText = currentLoggedUserEmail;
       
       const now = new Date();
       const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -430,11 +455,11 @@
     function switchDataTab(tab) {
       currentTab = tab;
       document.getElementById('btn-outbound').className = tab === 'outbound' 
-        ? 'px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm'
-        : 'px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900';
+        ? 'px-4 py-1.5 rounded-lg font-semibold text-xs sm:text-sm transition bg-white text-indigo-600 shadow-sm'
+        : 'px-4 py-1.5 rounded-lg font-semibold text-xs sm:text-sm transition text-slate-600 hover:text-slate-900';
       document.getElementById('btn-inbound').className = tab === 'inbound'
-        ? 'px-5 py-2 rounded-lg font-semibold text-sm transition bg-white text-indigo-600 shadow-sm'
-        : 'px-5 py-2 rounded-lg font-semibold text-sm transition text-slate-600 hover:text-slate-900';
+        ? 'px-4 py-1.5 rounded-lg font-semibold text-xs sm:text-sm transition bg-white text-indigo-600 shadow-sm'
+        : 'px-4 py-1.5 rounded-lg font-semibold text-xs sm:text-sm transition text-slate-600 hover:text-slate-900';
       
       document.getElementById('lbl-partner').innerText = tab === 'outbound' ? 'ปลายทาง (Destination)' : 'ผู้ขาย (Vendor)';
       document.getElementById('drop-partner-title').innerText = tab === 'outbound' ? 'เลือกปลายทาง' : 'เลือกผู้ขาย';
@@ -514,7 +539,7 @@
 
     async function fetchData() {
       const tbody = document.getElementById('table-body');
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">กำลังดึงข้อมูล...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-slate-400">กำลังดึงข้อมูล...</td></tr>';
 
       const tableName = currentTab === 'outbound' ? 'outbound_records' : 'inbound_records';
       const { data, error } = await client.from(tableName).select('*').order('id', { ascending: false }).limit(100000);
@@ -632,7 +657,6 @@
         endDate = new Date(eY, eM - 1, eD, 23, 59, 59, 999);
       }
 
-      // อัปเดตข้อความวันที่บนกล่อง KPI
       const kpiDateEl = document.getElementById('kpi-date-range-display');
       if (startVal && endVal) {
         kpiDateEl.innerText = `${formatDisplayDate(startVal)} ถึง ${formatDisplayDate(endVal)}`;
@@ -703,11 +727,15 @@
       const thead = document.getElementById('table-head');
       const tbody = document.getElementById('table-body');
 
-      let totalWeight = 0;
+      let totalNetWeight = 0;
+      let totalBilledWeight = 0;
       let totalAmount = 0;
 
       filteredDataset.forEach(r => {
-        totalWeight += Number(r.net_weight || 0);
+        const netW = Number(r.net_weight || 0);
+        const billedW = currentTab === 'inbound' ? (Number(r.billed_weight) || netW) : netW;
+        totalNetWeight += netW;
+        totalBilledWeight += billedW;
         totalAmount += Number(r.total_amount || 0);
       });
 
@@ -730,65 +758,76 @@
         document.getElementById('table-title').innerText = `รายการส่งออก (พบ ${totalCount.toLocaleString()} รายการ)`;
         thead.innerHTML = `
           <tr>
-            <th class="p-3">วันที่ / เวลา</th>
-            <th class="p-3">ต้นทาง</th>
-            <th class="p-3">ปลายทาง</th>
-            <th class="p-3">เลขบัตรชั่ง</th>
-            <th class="p-3">ทะเบียนรถ</th>
-            <th class="p-3">บริษัทขนส่ง</th>
-            <th class="p-3">สินค้า</th>
-            <th class="p-3 text-right">นน. สุทธิ (กก.)</th>
+            <th class="w-[110px]">วันที่ / เวลา</th>
+            <th class="w-[85px]">ต้นทาง</th>
+            <th class="w-[140px]">ปลายทาง</th>
+            <th class="w-[160px]">เลขบัตรชั่ง</th>
+            <th class="w-[130px]">ทะเบียนรถ</th>
+            <th class="w-[85px]">บริษัทขนส่ง</th>
+            <th class="w-[85px]">สินค้า</th>
+            <th class="text-right w-[100px]">นน. สุทธิ (กก.)</th>
           </tr>
         `;
         tbody.innerHTML = pageData.map(r => `
-          <tr class="hover:bg-slate-50">
-            <td class="p-3 text-slate-500">${formatDisplayDate(r.tx_date)} ${r.tx_time || ''}</td>
-            <td class="p-3 font-medium">${r.origin || ''}</td>
-            <td class="p-3 font-semibold text-indigo-700">${r.destination || ''}</td>
-            <td class="p-3 font-mono text-xs">${r.ticket_no || ''}</td>
-            <td class="p-3">${r.plate_no || ''}</td>
-            <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-xs">${r.carrier || ''}</span></td>
-            <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
-            <td class="p-3 text-right font-bold text-slate-900">${Number(r.net_weight || 0).toLocaleString()}</td>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="text-slate-500">${formatDisplayDate(r.tx_date)} ${r.tx_time || ''}</td>
+            <td class="font-medium">${r.origin || ''}</td>
+            <td class="font-semibold text-indigo-700">${r.destination || ''}</td>
+            <td class="font-mono text-[11px]">${r.ticket_no || ''}</td>
+            <td>${r.plate_no || ''}</td>
+            <td><span class="px-1.5 py-0.5 bg-slate-100 rounded text-[11px]">${r.carrier || ''}</span></td>
+            <td><span class="px-1.5 py-0.5 bg-amber-50 text-amber-800 rounded text-[11px] font-semibold">${r.product || ''}</span></td>
+            <td class="text-right font-bold text-slate-900">${Number(r.net_weight || 0).toLocaleString()}</td>
           </tr>
         `).join('');
         document.getElementById('stat-amount').innerText = '-';
+        document.getElementById('stat-billed-weight').innerText = totalNetWeight.toLocaleString();
+        document.getElementById('stat-billed-weight-label').innerText = 'น้ำหนักรวม (กก.)';
       } else {
         document.getElementById('table-title').innerText = `รายการรับซื้อเข้า (พบ ${totalCount.toLocaleString()} รายการ)`;
         thead.innerHTML = `
           <tr>
-            <th class="p-3">วันที่</th>
-            <th class="p-3">ผู้ขาย (Vendor)</th>
-            <th class="p-3">PO No.</th>
-            <th class="p-3">สินค้า</th>
-            <th class="p-3">บัตรชั่ง (#Seq)</th>
-            <th class="p-3">ทะเบียน</th>
-            <th class="p-3 text-right">นน.สุทธิ</th>
-            <th class="p-3 text-right">ราคา/หน่วย</th>
-            <th class="p-3 text-right">ยอดรวม (บาท)</th>
+            <th class="w-[85px]">วันที่</th>
+            <th>ผู้ขาย (Vendor)</th>
+            <th class="w-[95px]">PO No.</th>
+            <th class="w-[80px]">สินค้า</th>
+            <th class="w-[155px]">บัตรชั่ง (#Seq)</th>
+            <th class="w-[105px]">ทะเบียน</th>
+            <th class="text-right w-[75px]">นน.สุทธิ</th>
+            <th class="text-right w-[65px] text-rose-600">หัก MT</th>
+            <th class="text-right w-[80px] text-blue-700 font-bold">นน.คิดเงิน</th>
+            <th class="text-right w-[75px]">ราคา/หน่วย</th>
+            <th class="text-right w-[100px]">ยอดรวม (บาท)</th>
           </tr>
         `;
         tbody.innerHTML = pageData.map(r => `
-          <tr class="hover:bg-slate-50">
-            <td class="p-3 text-slate-500">${formatDisplayDate(r.tx_date)}</td>
-            <td class="p-3 font-semibold text-slate-800">${r.vendor_name || ''} <span class="text-xs text-slate-400">(${r.vendor_code || ''})</span></td>
-            <td class="p-3">${r.po_no || ''}</td>
-            <td class="p-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-xs font-semibold">${r.product || ''}</span></td>
-            <td class="p-3 font-mono text-xs">${r.ticket_no} (#${r.seq})</td>
-            <td class="p-3">${r.plate_no || ''}</td>
-            <td class="p-3 text-right font-medium">${Number(r.net_weight || 0).toLocaleString()}</td>
-            <td class="p-3 text-right text-slate-500">${Number(r.unit_price || 0).toFixed(2)}</td>
-            <td class="p-3 text-right font-bold text-emerald-600">${Number(r.total_amount || 0).toLocaleString()}</td>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="text-slate-500">${formatDisplayDate(r.tx_date)}</td>
+            <td class="font-semibold text-slate-800">
+              ${r.vendor_name || ''} 
+              <span class="text-[11px] font-normal text-slate-400">(${r.vendor_code || ''})</span>
+            </td>
+            <td class="text-slate-600">${r.po_no || ''}</td>
+            <td><span class="px-1.5 py-0.5 bg-amber-50 text-amber-800 rounded text-[11px] font-semibold">${r.product || ''}</span></td>
+            <td class="font-mono text-[11px]">${r.ticket_no} (#${r.seq})</td>
+            <td>${r.plate_no || ''}</td>
+            <td class="text-right font-medium">${Number(r.net_weight || 0).toLocaleString()}</td>
+            <td class="text-right text-rose-500">${Number(r.deduct_mt || 0).toLocaleString()}</td>
+            <td class="text-right font-bold text-blue-700">${Number(r.billed_weight !== undefined && r.billed_weight !== null ? r.billed_weight : r.net_weight || 0).toLocaleString()}</td>
+            <td class="text-right text-slate-500">${Number(r.unit_price || 0).toFixed(2)}</td>
+            <td class="text-right font-bold text-emerald-600">${Number(r.total_amount || 0).toLocaleString()}</td>
           </tr>
         `).join('');
         document.getElementById('stat-amount').innerText = totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 });
+        document.getElementById('stat-billed-weight').innerText = totalBilledWeight.toLocaleString();
+        document.getElementById('stat-billed-weight-label').innerText = 'น้ำหนักคิดเงินรวม (กก.)';
       }
 
       document.getElementById('stat-count').innerText = totalCount.toLocaleString();
-      document.getElementById('stat-weight').innerText = totalWeight.toLocaleString();
+      document.getElementById('stat-weight').innerText = totalNetWeight.toLocaleString();
 
       if (totalCount === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-slate-400">ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
       }
     }
 
@@ -805,22 +844,27 @@
         return d && d >= startOfMonth && d <= endOfMonth;
       });
 
-      let totalWeight = 0;
+      let totalNetWeight = 0;
+      let totalBilledWeight = 0;
       let totalAmount = 0;
       const productWeights = {};
 
       monthData.forEach(r => {
-        const weight = Number(r.net_weight || 0);
+        const netW = Number(r.net_weight || 0);
+        const billedW = currentTab === 'inbound' ? (Number(r.billed_weight) || netW) : netW;
         const amount = Number(r.total_amount || 0);
         const prod = (r.product || 'ไม่ระบุ').trim();
 
-        totalWeight += weight;
+        totalNetWeight += netW;
+        totalBilledWeight += billedW;
         totalAmount += amount;
-        productWeights[prod] = (productWeights[prod] || 0) + weight;
+        productWeights[prod] = (productWeights[prod] || 0) + billedW;
       });
 
       document.getElementById('dash-month-count').innerText = monthData.length.toLocaleString();
-      document.getElementById('dash-month-weight').innerText = totalWeight.toLocaleString();
+      document.getElementById('dash-month-weight').innerText = totalNetWeight.toLocaleString();
+      document.getElementById('dash-month-billed-weight').innerText = totalBilledWeight.toLocaleString();
+      document.getElementById('dash-month-billed-weight-label').innerText = currentTab === 'inbound' ? 'น้ำหนักคิดเงินทั้งเดือน (กก.)' : 'น้ำหนักรวมทั้งเดือน (กก.)';
       document.getElementById('dash-month-amount').innerText = currentTab === 'inbound' 
         ? totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) 
         : '-';
@@ -832,7 +876,7 @@
       const legendContainer = document.getElementById('chart-legend-list');
       legendContainer.innerHTML = labels.map((label, idx) => {
         const val = productWeights[label];
-        const pct = totalWeight > 0 ? ((val / totalWeight) * 100).toFixed(1) : 0;
+        const pct = totalBilledWeight > 0 ? ((val / totalBilledWeight) * 100).toFixed(1) : 0;
         const color = bgColors[idx % bgColors.length];
         return `
           <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
@@ -896,7 +940,9 @@
         : 'ทั้งหมด';
 
       const groupMap = {};
-      let totalAllWeight = 0;
+      let totalAllNetWeight = 0;
+      let totalAllDeductMt = 0;
+      let totalAllBilledWeight = 0;
       let totalAllAmount = 0;
 
       sortedDataset.forEach(r => {
@@ -904,34 +950,107 @@
         const partner = rawPartner.replace(/\s+/g, ' ').trim();
         const prod = (r.product || 'ไม่ระบุ').replace(/\s+/g, ' ').trim();
         const key = `${partner}__${prod}`;
+        const netW = Number(r.net_weight || 0);
+        const deductMt = Number(r.deduct_mt || 0);
+        const billedW = currentTab === 'inbound' ? (Number(r.billed_weight) || netW) : netW;
 
         if (!groupMap[key]) {
           groupMap[key] = {
             partner: partner,
             product: prod,
             tripCount: 0,
-            totalWeight: 0,
+            totalNetWeight: 0,
+            totalDeductMt: 0,
+            totalBilledWeight: 0,
             totalAmount: 0
           };
         }
         groupMap[key].tripCount += 1;
-        groupMap[key].totalWeight += Number(r.net_weight || 0);
+        groupMap[key].totalNetWeight += netW;
+        groupMap[key].totalDeductMt += deductMt;
+        groupMap[key].totalBilledWeight += billedW;
         groupMap[key].totalAmount += Number(r.total_amount || 0);
 
-        totalAllWeight += Number(r.net_weight || 0);
+        totalAllNetWeight += netW;
+        totalAllDeductMt += deductMt;
+        totalAllBilledWeight += billedW;
         totalAllAmount += Number(r.total_amount || 0);
       });
 
-      const summaryRowsHtml = Object.values(groupMap).map((g, idx) => `
-        <tr>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; font-weight: bold;">${g.partner}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: center;">${g.product}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right;">${g.tripCount} เที่ยว</td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold;">${g.totalWeight.toLocaleString()}</td>
-          ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold; color: #047857;">${g.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
-        </tr>
-      `).join('');
+      let summaryHeaders = '';
+      if (currentTab === 'outbound') {
+        summaryHeaders = `
+          <tr style="background: #f1f5f9;">
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ลำดับ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; font-size: 11px;">ปลายทาง (Destination)</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ชนิดสินค้า</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">จำนวนเที่ยว</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">น้ำหนักสุทธิรวม (กก.)</th>
+          </tr>
+        `;
+      } else {
+        summaryHeaders = `
+          <tr style="background: #f1f5f9;">
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ลำดับ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; font-size: 11px;">ผู้ขาย (Vendor)</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ชนิดสินค้า</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">จำนวนเที่ยว</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">นน.สุทธิรวม (กก.)</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #dc2626;">หัก MT รวม</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; font-weight: bold; color: #1d4ed8;">นน.คิดเงินรวม (กก.)</th>
+            ${showAmount ? '<th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">มูลค่ารวม (บาท)</th>' : ''}
+          </tr>
+        `;
+      }
+
+      const summaryRowsHtml = Object.values(groupMap).map((g, idx) => {
+        if (currentTab === 'outbound') {
+          return `
+            <tr>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; font-weight: bold;">${g.partner}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: center;">${g.product}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right;">${g.tripCount} เที่ยว</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold;">${g.totalNetWeight.toLocaleString()}</td>
+            </tr>
+          `;
+        } else {
+          return `
+            <tr>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; font-weight: bold;">${g.partner}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: center;">${g.product}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right;">${g.tripCount} เที่ยว</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right;">${g.totalNetWeight.toLocaleString()}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; color: #dc2626;">${g.totalDeductMt.toLocaleString()}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: bold; color: #1d4ed8;">${g.totalBilledWeight.toLocaleString()}</td>
+              ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 11px; text-align: right; font-weight: bold; color: #047857;">${g.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
+            </tr>
+          `;
+        }
+      }).join('');
+
+      let summaryFooterHtml = '';
+      if (currentTab === 'outbound') {
+        summaryFooterHtml = `
+          <tr style="background: #f8fafc; font-weight: bold;">
+            <td colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">ยอดรวมทั้งสิ้น:</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${sortedDataset.length.toLocaleString()} เที่ยว</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #4338ca;">${totalAllNetWeight.toLocaleString()}</td>
+          </tr>
+        `;
+      } else {
+        summaryFooterHtml = `
+          <tr style="background: #f8fafc; font-weight: bold;">
+            <td colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">ยอดรวมทั้งสิ้น:</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${sortedDataset.length.toLocaleString()} เที่ยว</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${totalAllNetWeight.toLocaleString()}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #dc2626;">${totalAllDeductMt.toLocaleString()}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #1d4ed8;">${totalAllBilledWeight.toLocaleString()}</td>
+            ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #047857;">${totalAllAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
+          </tr>
+        `;
+      }
 
       let detailSectionHtml = '';
       if (includeDetails) {
@@ -957,6 +1076,8 @@
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">ทะเบียน</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px;">สินค้า</th>
             <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">นน.สุทธิ</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right; color: #dc2626;">หัก MT</th>
+            <th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right; color: #1d4ed8; font-weight: bold;">นน.คิดเงิน</th>
             ${showAmount ? `<th style="border: 1px solid #cbd5e1; padding: 5px; background: #f8fafc; font-size: 10px; text-align: right;">ยอดรวม (บาท)</th>` : ''}
           </tr>
         `;
@@ -987,6 +1108,8 @@
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.plate_no || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px;">${r.product || ''}</td>
                 <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right;">${Number(r.net_weight || 0).toLocaleString()}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; color: #dc2626;">${Number(r.deduct_mt || 0).toLocaleString()}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; color: #1d4ed8; font-weight: bold;">${Number(r.billed_weight !== undefined && r.billed_weight !== null ? r.billed_weight : r.net_weight || 0).toLocaleString()}</td>
                 ${showAmount ? `<td style="border: 1px solid #e2e8f0; padding: 4px; font-size: 10px; text-align: right; color: #047857;">${Number(r.total_amount || 0).toLocaleString()}</td>` : ''}
               </tr>
             `;
@@ -1024,8 +1147,9 @@
               <h1 style="font-size: 18px; font-weight: bold; margin: 0;">${reportTypeTitle} - ${currentTab === 'outbound' ? 'ขนส่งส่งออก' : 'รับซื้อเข้า'}</h1>
               <p style="font-size: 11px; color: #64748b; margin: 3px 0 0 0;">เอกสารสำหรับการตรวจสอบและลงนามอนุมัติ</p>
             </div>
-            <div style="text-align: right; font-size: 10px; color: #475569;">
-              พิมพ์เมื่อ: ${printDate}
+            <div style="text-align: right; font-size: 10px; color: #475569; line-height: 1.4;">
+              <div>ผู้สั่งพิมพ์: <strong>${currentLoggedUserEmail}</strong></div>
+              <div>พิมพ์เมื่อ: ${printDate}</div>
             </div>
           </div>
 
@@ -1036,23 +1160,11 @@
           <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #1e293b;">📊 ตารางสรุปยอดแยกตามกลุ่ม:</div>
           <table>
             <thead>
-              <tr style="background: #f1f5f9;">
-                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ลำดับ</th>
-                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; font-size: 11px;">${currentTab === 'outbound' ? 'ปลายทาง (Destination)' : 'ผู้ขาย (Vendor)'}</th>
-                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 11px;">ชนิดสินค้า</th>
-                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">จำนวนเที่ยว</th>
-                <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">น้ำหนักสุทธิรวม (กก.)</th>
-                ${showAmount ? '<th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">มูลค่ารวม (บาท)</th>' : ''}
-              </tr>
+              ${summaryHeaders}
             </thead>
             <tbody>
               ${summaryRowsHtml}
-              <tr style="background: #f8fafc; font-weight: bold;">
-                <td colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">ยอดรวมทั้งสิ้น:</td>
-                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px;">${sortedDataset.length.toLocaleString()} เที่ยว</td>
-                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #4338ca;">${totalAllWeight.toLocaleString()}</td>
-                ${showAmount ? `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-size: 11px; color: #047857;">${totalAllAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>` : ''}
-              </tr>
+              ${summaryFooterHtml}
             </tbody>
           </table>
 
@@ -1062,6 +1174,7 @@
             <div style="text-align: center; width: 28%;">
               <div style="border-bottom: 1px dashed #94a3b8; height: 35px;"></div>
               <div style="margin-top: 6px; font-weight: bold;">ผู้จัดทำข้อมูล</div>
+              <div style="font-size: 10px; color: #475569;">(${currentLoggedUserEmail})</div>
               <div style="color: #64748b;">วันที่: _____/_____/_________</div>
             </div>
             <div style="text-align: center; width: 28%;">
